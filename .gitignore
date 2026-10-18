@@ -1,0 +1,28 @@
+# Build .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+publish/
+
+# Visual Studio / VS Code / Rider
+.vs/
+.vscode/
+.idea/
+
+# Journaux produits par l'application une fois deployee
+logs/
+*.log
+
+# Exports de la surveillance
+*.csv
+
+# Fichier de configuration renseigne avec de vraies machines.
+# Le modele watch-config.json est suivi ; vos valeurs ne le sont pas.
+watch-config.local.json
+
+# Systeme
+Thumbs.db
+desktop.ini
+.DS_Store

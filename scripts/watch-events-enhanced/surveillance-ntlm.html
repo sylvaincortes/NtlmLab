@@ -1,0 +1,2534 @@
+<title>Surveillance NTLM centralisée</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+/* Layout : colonne unique de lecture, bandes pleine largeur pour les reperes,
+   code et tableaux en debordement controle. Deux couleurs semantiques portent
+   tout le document : ambre = NTLM, indigo = Kerberos. */
+:root{
+  --bg:#f7f8fa;
+  --surface:#ffffff;
+  --surface-2:#eef0f4;
+  --line:#d9dde4;
+  --line-strong:#b6bdc9;
+  --fg:#1b1f27;
+  --fg-mut:#5e6673;
+  --ntlm:#b35309;
+  --ntlm-bg:#fdf3e7;
+  --kerb:#3a4fb8;
+  --kerb-bg:#eceffb;
+  --ok:#17694a;
+  --ok-bg:#e7f3ed;
+  --warn:#8a5a00;
+  --warn-bg:#fdf6e3;
+  --err:#a61f28;
+  --err-bg:#fcecee;
+  --code-bg:#1c2029;
+  --code-fg:#dfe3ea;
+  --font-display:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono","Cascadia Mono",Consolas,monospace;
+  --maxw:860px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13161c;
+    --surface:#1a1e26;
+    --surface-2:#222732;
+    --line:#2d3340;
+    --line-strong:#454d5d;
+    --fg:#e6e9ef;
+    --fg-mut:#98a1b2;
+    --ntlm:#f0a35e;
+    --ntlm-bg:#2a2016;
+    --kerb:#93a6f2;
+    --kerb-bg:#1a1e33;
+    --ok:#58d39b;
+    --ok-bg:#132620;
+    --warn:#e7b65a;
+    --warn-bg:#272016;
+    --err:#f07d86;
+    --err-bg:#2a1a1d;
+    --code-bg:#0e1116;
+    --code-fg:#dfe3ea;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13161c;
+  --surface:#1a1e26;
+  --surface-2:#222732;
+  --line:#2d3340;
+  --line-strong:#454d5d;
+  --fg:#e6e9ef;
+  --fg-mut:#98a1b2;
+  --ntlm:#f0a35e;
+  --ntlm-bg:#2a2016;
+  --kerb:#93a6f2;
+  --kerb-bg:#1a1e33;
+  --ok:#58d39b;
+  --ok-bg:#132620;
+  --warn:#e7b65a;
+  --warn-bg:#272016;
+  --err:#f07d86;
+  --err-bg:#2a1a1d;
+  --code-bg:#0e1116;
+  --code-fg:#dfe3ea;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.65;
+  margin:0;
+}
+.wrap{
+  max-width:var(--maxw);
+  margin-inline:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 72px;
+}
+
+/* ---------- En-tete ---------- */
+.masthead{
+  border-bottom:2px solid var(--fg);
+  padding-block:40px 20px;
+  margin-bottom:36px;
+}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--fg-mut);
+  margin:0 0 10px;
+}
+h1{
+  font-family:var(--font-display);
+  font-size:clamp(34px,7vw,52px);
+  line-height:1.05;
+  font-weight:700;
+  letter-spacing:-.015em;
+  margin:0 0 14px;
+  text-wrap:balance;
+}
+.lede{font-size:18px;color:var(--fg-mut);margin:0;max-width:62ch}
+.meta{
+  display:flex;flex-wrap:wrap;gap:8px 20px;
+  margin-top:20px;font-family:var(--font-mono);font-size:12.5px;color:var(--fg-mut);
+}
+.meta b{color:var(--fg);font-weight:500}
+
+/* ---------- Typo de section ---------- */
+h2{
+  font-family:var(--font-display);
+  font-size:clamp(24px,4.2vw,32px);
+  font-weight:700;letter-spacing:-.01em;line-height:1.15;
+  margin:56px 0 6px;text-wrap:balance;
+  padding-top:14px;border-top:1px solid var(--line-strong);
+}
+h2 .num{
+  font-family:var(--font-mono);font-size:13px;font-weight:500;
+  color:var(--fg-mut);display:block;margin-bottom:6px;letter-spacing:.1em;
+}
+h3{
+  font-family:var(--font-display);font-size:20px;font-weight:600;
+  margin:34px 0 8px;text-wrap:balance;
+}
+h4{font-size:15px;font-weight:600;margin:22px 0 6px;letter-spacing:.01em}
+p{margin:0 0 14px;max-width:70ch}
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:70ch}
+li{margin-bottom:6px}
+a{color:var(--kerb);text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--kerb);outline-offset:2px;border-radius:3px}
+strong{font-weight:600}
+
+code{
+  font-family:var(--font-mono);font-size:.875em;
+  background:var(--surface-2);border:1px solid var(--line);
+  padding:1px 5px;border-radius:4px;white-space:nowrap;
+}
+pre{
+  background:var(--code-bg);color:var(--code-fg);
+  border-radius:8px;padding:16px 18px;margin:0 0 18px;
+  overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.6;
+  border:1px solid var(--line);
+}
+pre code{background:none;border:0;padding:0;font-size:inherit;color:inherit;white-space:pre}
+pre .c{color:#8b94a6}
+
+/* ---------- Sommaire ---------- */
+.toc{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:20px 22px;margin-bottom:12px;
+}
+.toc h2{margin:0 0 12px;border:0;padding:0;font-size:15px;letter-spacing:.12em;
+  text-transform:uppercase;font-family:var(--font-mono);font-weight:500;color:var(--fg-mut)}
+.toc ol{list-style:none;margin:0;padding:0;columns:2;column-gap:28px;max-width:none}
+.toc li{margin-bottom:5px;break-inside:avoid}
+.toc a{text-decoration:none;color:var(--fg);font-size:14.5px}
+.toc a:hover{text-decoration:underline}
+.toc .k{font-family:var(--font-mono);color:var(--fg-mut);font-size:12px;margin-right:8px}
+@media (max-width:620px){.toc ol{columns:1}}
+
+/* ---------- Encarts ---------- */
+.note{
+  border-left:3px solid var(--line-strong);
+  background:var(--surface);
+  padding:14px 18px;border-radius:0 8px 8px 0;margin:0 0 18px;font-size:15px;
+}
+.note p:last-child{margin-bottom:0}
+.note .t{font-weight:600;display:block;margin-bottom:4px}
+.note.warn{border-color:var(--warn);background:var(--warn-bg)}
+.note.err{border-color:var(--err);background:var(--err-bg)}
+.note.ok{border-color:var(--ok);background:var(--ok-bg)}
+.note.ntlm{border-color:var(--ntlm);background:var(--ntlm-bg)}
+.note.kerb{border-color:var(--kerb);background:var(--kerb-bg)}
+
+/* ---------- Badges protocole ---------- */
+.tag{
+  display:inline-block;font-family:var(--font-mono);font-size:11.5px;font-weight:600;
+  letter-spacing:.06em;padding:2px 8px;border-radius:999px;vertical-align:2px;
+}
+.tag.ntlm{background:var(--ntlm-bg);color:var(--ntlm);border:1px solid var(--ntlm)}
+.tag.kerb{background:var(--kerb-bg);color:var(--kerb);border:1px solid var(--kerb)}
+
+/* ---------- Machine card ---------- */
+.machines{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 20px}
+@media (max-width:720px){.machines{grid-template-columns:1fr}}
+.machine{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0;
+}
+.machine .role{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--fg-mut);margin-bottom:4px}
+.machine .name{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:2px}
+.machine .ip{font-family:var(--font-mono);font-size:13px;color:var(--fg-mut);margin-bottom:10px}
+.machine ul{margin:0;padding-left:18px;font-size:14px}
+.machine li{margin-bottom:3px}
+
+/* ---------- Tableaux ---------- */
+.tablewrap{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{
+  background:var(--surface-2);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  font-family:var(--font-mono);font-weight:500;color:var(--fg-mut);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+.num-col{font-variant-numeric:tabular-nums;font-family:var(--font-mono);white-space:nowrap}
+
+/* ---------- Sequence ---------- */
+.seq{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 0 20px;background:var(--surface)}
+.seq .hd{padding:10px 16px;background:var(--surface-2);font-family:var(--font-mono);
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-mut)}
+.step{display:grid;grid-template-columns:34px 1fr;gap:0 14px;padding:13px 16px;border-top:1px solid var(--line)}
+.step .n{
+  font-family:var(--font-mono);font-size:12px;font-weight:600;
+  width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--line-strong);color:var(--fg-mut);
+}
+.step.ntlm .n{border-color:var(--ntlm);color:var(--ntlm)}
+.step.kerb .n{border-color:var(--kerb);color:var(--kerb)}
+.step .flow{font-family:var(--font-mono);font-size:13px;font-weight:500;margin-bottom:2px}
+.step .d{font-size:14.5px;color:var(--fg-mut)}
+.step .d code{font-size:12.5px}
+
+/* ---------- Etapes de deploiement ---------- */
+.phase{
+  display:flex;align-items:baseline;gap:12px;margin:46px 0 10px;
+  padding-top:14px;border-top:1px solid var(--line-strong);
+}
+.phase .idx{
+  font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.1em;
+  color:var(--bg);background:var(--fg);padding:3px 9px;border-radius:4px;white-space:nowrap;
+}
+.phase h3{margin:0;font-size:22px}
+.where{
+  display:inline-block;font-family:var(--font-mono);font-size:12px;
+  color:var(--fg-mut);border:1px dashed var(--line-strong);
+  padding:2px 9px;border-radius:4px;margin-bottom:12px;
+}
+
+/* ---------- Schema ---------- */
+figure{margin:0 0 22px}
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px}
+.diagram svg{display:block;width:100%;min-width:600px;max-width:100%;height:auto}
+figcaption{font-size:13.5px;color:var(--fg-mut);margin-top:8px;font-style:italic}
+
+/* ---------- Fichiers ---------- */
+details.file{
+  border:1px solid var(--line);border-radius:10px;margin:0 0 12px;background:var(--surface);overflow:hidden;
+}
+details.file>summary{
+  cursor:pointer;padding:12px 16px;font-family:var(--font-mono);font-size:14px;font-weight:500;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;list-style:none;
+}
+details.file>summary::-webkit-details-marker{display:none}
+details.file>summary::before{content:"▸";color:var(--fg-mut);font-size:12px}
+details.file[open]>summary::before{content:"▾"}
+details.file[open]>summary{border-bottom:1px solid var(--line);background:var(--surface-2)}
+details.file .desc{font-family:var(--font-body);font-size:13.5px;color:var(--fg-mut);font-weight:400}
+details.file pre{margin:0;border:0;border-radius:0;max-height:620px}
+
+footer{margin-top:56px;padding-top:20px;border-top:2px solid var(--fg);
+  font-size:13.5px;color:var(--fg-mut)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Outil d'observation Active Directory — documentation</p>
+  <h1>Surveiller NTLM et Kerberos<br>sur plusieurs machines à la fois</h1>
+  <p class="lede">Trois scripts PowerShell qui interrogent les journaux d'authentification
+  de vos contrôleurs de domaine, serveurs et postes clients depuis un seul endroit, et
+  fusionnent tout dans un flux unique trié chronologiquement. Rien à installer sur les
+  machines surveillées.</p>
+  <div class="meta">
+    <span><b>Prérequis</b> PowerShell 5.1</span>
+    <span><b>Transport</b> WinRM ou RPC</span>
+    <span><b>Cibles</b> Windows Server 2008 R2 à 2025, Windows 10 et 11</span>
+    <span><b>Version</b> 1.0</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#apropos"><span class="k">01</span>À quoi ça sert</a></li>
+    <li><a href="#principe"><span class="k">02</span>Principe de fonctionnement</a></li>
+    <li><a href="#privileges"><span class="k">03</span>Privilèges requis</a></li>
+    <li><a href="#demarrage"><span class="k">04</span>Mise en route</a></li>
+    <li><a href="#config"><span class="k">05</span>Le fichier de configuration</a></li>
+    <li><a href="#scripts"><span class="k">06</span>Référence des scripts</a></li>
+    <li><a href="#lecture"><span class="k">07</span>Lire l'affichage</a></li>
+    <li><a href="#evenements"><span class="k">08</span>Les événements collectés</a></li>
+    <li><a href="#audit"><span class="k">09</span>Activer l'audit sur les cibles</a></li>
+    <li><a href="#inventaire"><span class="k">10</span>Campagne d'inventaire NTLM</a></li>
+    <li><a href="#depannage"><span class="k">11</span>Dépannage</a></li>
+    <li><a href="#sources"><span class="k">12</span>Code source</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ 01 -->
+<h2 id="apropos"><span class="num">01</span>À quoi ça sert</h2>
+
+<p>Une authentification Windows laisse des traces sur <strong>plusieurs machines à la fois</strong>,
+et lesquelles dépendent du protocole. Les examiner machine par machine, dans des
+observateurs d'événements séparés, oblige à recoller les horodatages de tête — exercice
+pénible et source d'erreurs.</p>
+
+<p>Cet outil interroge toutes les machines depuis un seul poste et produit un flux unique,
+trié chronologiquement, avec une colonne indiquant la machine d'origine :</p>
+
+<pre><code>HEURE        MACHINE          ROLE ID    PROTOCOLE                  COMPTE / DETAIL
+------------------------------------------------------------------------------------------
+00:38:04.102 WIN11A           CLI  4020  NTLM sortant               NEWGEN\root cible=HTTP/srv25a...
+00:38:04.351 DCA              DC   4776  NTLM validation DC         NEWGEN\root poste=WIN11A erreur=0x0
+00:38:04.402 DCA              DC   4032  NTLM DC validation         NEWGEN\root NTLMv2 status=0x0
+00:38:04.583 SRV25A           SRV  4624  NTLM / NTLM V2             NEWGEN\root [10.0.0.100] type=3 proc=NtLmSsp
+00:38:04.611 SRV25A           SRV  4022  NTLM entrant               NEWGEN\root NTLMv2 status=0x0</code></pre>
+
+<p>On lit ici, en cinq lignes et en moins d'une seconde, le trajet complet d'une
+authentification NTLM : le client qui émet, le contrôleur de domaine qui valide le mot de
+passe, le serveur qui ouvre la session.</p>
+
+<h3>Cas d'usage</h3>
+
+<ul>
+  <li><strong>Inventorier NTLM</strong> avant d'envisager de le restreindre : qui l'utilise encore,
+  depuis quelle machine, vers quel serveur, et <em>avec quelle application</em>.</li>
+  <li><strong>Diagnostiquer un échec d'authentification</strong> en voyant d'un coup d'œil sur
+  quelle machine la chaîne se rompt.</li>
+  <li><strong>Comprendre ou enseigner</strong> la différence entre NTLM et Kerberos, en observant
+  que l'un fait intervenir le DC au moment de l'accès et l'autre non.</li>
+  <li><strong>Vérifier une migration</strong> : s'assurer qu'une application bascule bien sur
+  Kerberos après correction d'un SPN.</li>
+</ul>
+
+<h3>Ce que l'outil n'est pas</h3>
+
+<p>Ce n'est pas un SIEM. Il n'archive rien par défaut, ne corrèle pas sur la durée, ne
+produit pas d'alerte. Il affiche en direct et sait écrire un CSV. Pour une collecte
+pérenne sur un parc entier, utilisez Windows Event Forwarding ou un collecteur dédié —
+cet outil répond à la question « que se passe-t-il <em>maintenant</em>, et dans quel ordre ».</p>
+
+<div class="note">
+  <span class="t">La différence structurante entre les deux protocoles</span>
+  <p><strong>NTLM est un protocole de relais.</strong> Le serveur ne connaît pas le mot de passe et
+  ne peut pas vérifier la réponse au défi : il transmet le triplet au contrôleur de domaine
+  via le canal Netlogon et attend un verdict. Une authentification laisse donc des traces
+  sur <em>deux</em> machines, plus le client.</p>
+  <p><strong>Kerberos est un protocole à tickets.</strong> Le client obtient ses tickets auprès du DC
+  <em>avant</em> de contacter le serveur, qui les valide seul avec la clé de son compte
+  machine. Les traces côté DC sont donc antérieures à l'accès et concernent l'émission des
+  tickets, pas l'accès lui-même.</p>
+</div>
+
+<!-- ============================================================ 02 -->
+<h2 id="principe"><span class="num">02</span>Principe de fonctionnement</h2>
+
+<figure>
+<div class="diagram">
+<svg viewBox="0 0 860 400" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Le poste de supervision ouvre une session persistante vers le contrôleur de domaine, le serveur et le poste client ; chaque machine exécute localement un collecteur qui renvoie des enregistrements normalisés, fusionnés puis triés chronologiquement.">
+  <defs>
+    <marker id="wArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--kerb)"/>
+    </marker>
+    <marker id="wBack" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--fg-mut)"/>
+    </marker>
+  </defs>
+
+  <style>
+    .bx   { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.5; }
+    .sup  { fill: var(--kerb-bg); stroke: var(--kerb); stroke-width: 2; }
+    .nm   { font: 700 16px var(--font-display); fill: var(--fg); }
+    .sub  { font: 400 11px var(--font-mono); fill: var(--fg-mut); }
+    .ev   { font: 400 11px var(--font-mono); fill: var(--fg-mut); }
+    .evn  { font: 400 11px var(--font-mono); fill: var(--ntlm); }
+    .lbl  { font: 500 11.5px var(--font-mono); fill: var(--fg-mut); }
+    .lblk { font: 500 11.5px var(--font-mono); fill: var(--kerb); }
+    .out  { font: 500 12px var(--font-mono); fill: var(--fg); }
+    .ln   { fill: none; stroke: var(--kerb); stroke-width: 1.8; }
+    .lnb  { fill: none; stroke: var(--fg-mut); stroke-width: 1.4; stroke-dasharray: 5 4; }
+  </style>
+
+  <!-- Poste de supervision -->
+  <rect class="sup" x="20" y="150" width="190" height="104" rx="8"/>
+  <text class="nm"  x="36" y="178">Supervision</text>
+  <text class="sub" x="36" y="196">PowerShell 5.1</text>
+  <text class="sub" x="36" y="214">lecture seule</text>
+  <text class="sub" x="36" y="232">rien a installer</text>
+
+  <!-- Liens aller : sessions persistantes -->
+  <path class="ln" d="M210,176 C280,176 300,86 370,86"   marker-end="url(#wArr)"/>
+  <path class="ln" d="M210,202 C290,202 300,202 370,202" marker-end="url(#wArr)"/>
+  <path class="ln" d="M210,228 C280,228 300,318 370,318" marker-end="url(#wArr)"/>
+  <text class="lblk" x="258" y="120" text-anchor="middle">session</text>
+  <text class="lblk" x="258" y="134" text-anchor="middle">persistante</text>
+
+  <!-- Machines surveillees -->
+  <rect class="bx" x="376" y="52" width="210" height="68" rx="8"/>
+  <text class="nm"  x="392" y="78">DCA</text>
+  <text class="sub" x="392" y="95">role: dc</text>
+  <text class="evn" x="392" y="112">4776 · 4032 · 4768 · 4769</text>
+
+  <rect class="bx" x="376" y="168" width="210" height="68" rx="8"/>
+  <text class="nm"  x="392" y="194">SRV25A</text>
+  <text class="sub" x="392" y="211">role: server</text>
+  <text class="evn" x="392" y="228">4624 · 4625 · 4022 · 4023</text>
+
+  <rect class="bx" x="376" y="284" width="210" height="68" rx="8"/>
+  <text class="nm"  x="392" y="310">WIN11A</text>
+  <text class="sub" x="392" y="327">role: client</text>
+  <text class="evn" x="392" y="344">4020 · 4021 · 4015</text>
+
+  <!-- Retour : enregistrements normalises -->
+  <path class="lnb" d="M586,86  C640,86  650,176 700,176" marker-end="url(#wBack)"/>
+  <path class="lnb" d="M586,202 C640,202 650,194 700,194" marker-end="url(#wBack)"/>
+  <path class="lnb" d="M586,318 C640,318 650,212 700,212" marker-end="url(#wBack)"/>
+  <text class="lbl" x="645" y="254" text-anchor="middle">enregistrements</text>
+  <text class="lbl" x="645" y="268" text-anchor="middle">normalises</text>
+
+  <!-- Sortie -->
+  <rect class="sup" x="706" y="150" width="140" height="104" rx="8"/>
+  <text class="out" x="722" y="176">fusion</text>
+  <text class="out" x="722" y="196">tri horaire</text>
+  <text class="out" x="722" y="216">dedup.</text>
+  <text class="out" x="722" y="236">affichage</text>
+
+  <!-- Legende -->
+  <line class="ln" x1="250" y1="382" x2="280" y2="382"/>
+  <text class="lbl" x="288" y="386">interrogation</text>
+  <line class="lnb" x1="430" y1="382" x2="460" y2="382"/>
+  <text class="lbl" x="468" y="386">resultats</text>
+</svg>
+</div>
+<figcaption>Le poste de supervision ouvre une session persistante vers chaque machine,
+y exécute un collecteur qui lit les journaux localement et ne renvoie que des
+enregistrements normalisés, puis fusionne et trie l'ensemble.</figcaption>
+</figure>
+
+<p>Quatre mécanismes méritent d'être connus : ils expliquent le comportement de l'outil et
+évitent de mal interpréter ce qu'on voit.</p>
+
+<h3>Sessions persistantes</h3>
+
+<p>En transport WinRM, l'outil ouvre <strong>une session par machine au démarrage</strong> et la
+réutilise à chaque tour. Sans cela, chaque interrogation ouvrirait une nouvelle connexion,
+donc une nouvelle ouverture de session réseau sur la cible : un événement 4624 toutes les
+quelques secondes sur chaque machine surveillée. L'outil polluerait alors exactement ce
+qu'il est censé observer.</p>
+
+<p>Si une session meurt, elle est jetée et recréée au tour suivant, sans interrompre la
+collecte sur les autres machines.</p>
+
+<h3>Collecte au plus près de la source</h3>
+
+<p>Le bloc de collecte s'exécute <strong>sur la machine distante</strong> et ne renvoie que des
+objets normalisés et légers, pas des enregistrements d'événements complets. Cela limite
+fortement le volume transféré, ce qui compte dès qu'on surveille plus de quelques
+machines.</p>
+
+<h3>Horodatages normalisés</h3>
+
+<p>La fenêtre de collecte est calculée <strong>sur chaque machine interrogée</strong>, pas sur le
+poste de supervision. Les heures sont converties en UTC pour le transport, puis
+réaffichées en heure locale du superviseur. Un décalage de fuseau horaire ne perturbe donc
+pas le tri.</p>
+
+<p>Une dérive d'horloge réelle, en revanche, fausserait l'ordre apparent des événements.
+Les membres du domaine se synchronisent automatiquement sur le contrôleur de domaine ;
+en cas de doute, <code>w32tm /query /status</code>.</p>
+
+<h3>Déduplication par RecordId</h3>
+
+<p>L'outil interroge volontairement une fenêtre plus large que son intervalle — environ le
+double, plus dix secondes — pour ne rien manquer d'un événement écrit avec un léger
+retard. Les doublons sont éliminés à la réception grâce à la clé
+<code>machine|journal|RecordId</code>. Le cache est borné à 20 000 entrées pour qu'une session
+longue ne consomme pas indéfiniment de mémoire.</p>
+
+<!-- ============================================================ 03 -->
+<h2 id="privileges"><span class="num">03</span>Privilèges requis</h2>
+
+<p>Les deux scripts n'ont pas du tout les mêmes exigences, et cette asymétrie est
+délibérée : elle permet de séparer les rôles.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th></th><th><code>prepare-monitoring.ps1</code></th><th><code>watch-events-enhanced.ps1</code></th></tr></thead>
+  <tbody>
+    <tr><td>Nature</td><td>configure les machines</td><td><strong>lecture seule</strong>, ne modifie rien</td></tr>
+    <tr><td>Fréquence</td><td>une seule fois</td><td>à chaque session d'observation</td></tr>
+    <tr><td>Privilège requis</td><td><strong>administrateur local de chaque machine surveillée</strong></td><td>droit de lire le journal Sécurité à distance</td></tr>
+    <tr><td>Pourquoi</td><td>active WinRM, modifie des règles de pare-feu, redimensionne des journaux, lit la politique d'audit</td><td>appelle uniquement <code>Get-WinEvent</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Un administrateur du domaine remplit les conditions du premier script partout. Mais
+<strong>la surveillance quotidienne n'a pas besoin de ce niveau de privilège</strong> — et c'est
+même déconseillé : un compte qui tourne en continu sur un poste d'administration est une
+cible de choix.</p>
+
+<h3>Mettre en place un compte d'audit non privilégié</h3>
+
+<p>Un administrateur lance le script de préparation une fois, en nommant le compte qui
+fera tourner la surveillance :</p>
+
+<pre><code>.\prepare-monitoring.ps1 -GrantAccessTo NEWGEN\svc-audit</code></pre>
+
+<p>Sur chaque machine de la configuration, ce compte est ajouté à deux groupes locaux :</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Groupe</th><th>SID</th><th>Ce qu'il autorise</th><th>Nécessaire pour</th></tr></thead>
+  <tbody>
+    <tr><td>Lecteurs des journaux d'événements</td><td><code>S-1-5-32-573</code></td>
+        <td>lire le journal Sécurité à distance</td><td>les deux transports</td></tr>
+    <tr><td>Utilisateurs de gestion à distance</td><td><code>S-1-5-32-580</code></td>
+        <td>ouvrir une session WinRM sans être administrateur</td><td>WinRM uniquement</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Les groupes sont désignés par leur SID, invariant quelle que soit la langue du système,
+et l'ajout passe par le fournisseur <code>WinNT</code>, qui fonctionne aussi bien sur un serveur
+membre que sur un contrôleur de domaine — où ces groupes sont des groupes de domaine local
+du conteneur Builtin.</p>
+
+<div class="note warn">
+  <span class="t">Le point souvent négligé</span>
+  <p>Par défaut, <strong>seuls les administrateurs locaux peuvent ouvrir une session WinRM</strong>.
+  Appartenir à <em>Lecteurs des journaux d'événements</em> ne suffit donc pas en WinRM : il
+  faut aussi <em>Utilisateurs de gestion à distance</em>, sans quoi la session elle-même est
+  refusée avant même d'avoir lu quoi que ce soit.</p>
+  <p>En transport RPC, le premier groupe suffit. Pour un compte d'audit en moindre
+  privilège strict, RPC est donc le choix le plus économe.</p>
+</div>
+
+<div class="note">
+  <span class="t">Si vous n'êtes pas administrateur du domaine</span>
+  <p>Le script de préparation a besoin de droits d'administration <em>sur les machines
+  surveillées</em>, pas sur le domaine entier. Être administrateur local de chacune suffit.
+  Si vous ne les avez pas, demandez à qui de droit de lancer
+  <code>prepare-monitoring.ps1 -GrantAccessTo votre-compte</code>.</p>
+  <p>À défaut, tout est faisable à la main sur chaque machine :</p>
+  <pre><code>Enable-PSRemoting -Force
+Enable-NetFirewallRule -Name RemoteEventLogSvc*
+wevtutil sl Microsoft-Windows-NTLM/Operational /e:true /ms:67108864
+wevtutil sl Microsoft-Windows-Security-Netlogon/Operational /e:true /ms:67108864
+net localgroup "Event Log Readers" "NEWGEN\svc-audit" /add
+net localgroup "Remote Management Users" "NEWGEN\svc-audit" /add</code></pre>
+</div>
+
+<h3>Choisir le transport</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th></th><th>WinRM <em>(défaut)</em></th><th>RPC</th></tr></thead>
+  <tbody>
+    <tr><td>Port</td><td>5985</td><td>135 + plage dynamique</td></tr>
+    <tr><td>Activation sur la cible</td><td><code>Enable-PSRemoting -Force</code></td><td>aucune</td></tr>
+    <tr><td>Règle de pare-feu</td><td>créée par <code>Enable-PSRemoting</code></td><td><code>RemoteEventLogSvc*</code></td></tr>
+    <tr><td>Droits requis</td><td><em>Lecteurs des journaux</em> <strong>et</strong> <em>Utilisateurs de gestion à distance</em>, ou administrateur local</td><td><em>Lecteurs des journaux</em> seul</td></tr>
+    <tr><td>Collecte</td><td>session persistante, rapide</td><td>reconnexion à chaque tour</td></tr>
+    <tr><td>Bruit généré</td><td>une ouverture de session par machine, au démarrage</td><td>une ouverture de session par machine et par tour</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>WinRM pour la performance et la discrétion, RPC pour le moindre privilège. Le choix est
+global dans le fichier de configuration, et surchargeable machine par machine.</p>
+
+<!-- ============================================================ 04 -->
+<h2 id="demarrage"><span class="num">04</span>Mise en route</h2>
+
+<p>Trois étapes, dans cet ordre.</p>
+
+<div class="phase"><span class="idx">ÉTAPE 1</span><h3>Déclarer les machines</h3></div>
+
+<p>Ouvrez <code>watch-config.json</code> et renseignez vos machines. Le chapitre 05 détaille
+chaque clé.</p>
+
+<pre><code>"machines": [
+  { "name": "DCA.newgen.local",    "role": "dc",     "label": "Controleur de domaine" },
+  { "name": "SRV25A.newgen.local", "role": "server", "label": "Serveur web" },
+  { "name": "WIN11A.newgen.local", "role": "client", "label": "Poste de test" }
+]</code></pre>
+
+<div class="note warn">
+  <span class="t">FQDN plutôt que nom NetBIOS, et surtout pas d'adresse IP</span>
+  <p>La connexion distante s'authentifie elle-même, et le nom fourni détermine le protocole
+  retenu. Avec un FQDN, le client construit le SPN et obtient un ticket Kerberos. Avec une
+  <strong>adresse IP, c'est impossible</strong> : la connexion retombe sur NTLM, et votre outil de
+  surveillance NTLM génère alors lui-même du trafic NTLM à chaque interrogation.</p>
+  <p>Le nom court fonctionne en pratique, Windows complétant avec le suffixe DNS, mais
+  dépend de cette complétion — ambiguë dans une forêt à plusieurs domaines.</p>
+</div>
+
+<div class="phase"><span class="idx">ÉTAPE 2</span><h3>Préparer les machines</h3></div>
+<div class="where">une seule fois — administrateur local de chaque machine surveillée</div>
+
+<pre><code>.\prepare-monitoring.ps1
+<span class="c"># ou, pour deleguer la surveillance a un compte non privilegie :</span>
+.\prepare-monitoring.ps1 -GrantAccessTo NEWGEN\svc-audit</code></pre>
+
+<p>Pour chaque machine de la configuration, le script enchaîne :</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Étape</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td class="num-col">1</td>
+        <td>Teste WinRM. S'il ne répond pas, lance <code>Enable-PSRemoting</code> à distance <strong>via WMI/DCOM</strong> — on ne peut pas utiliser WinRM pour activer WinRM — puis attend 20 secondes et re-teste.</td></tr>
+    <tr><td class="num-col">2</td>
+        <td>Active les règles de pare-feu <code>RemoteEventLogSvc*</code>, qui fournissent le transport RPC de secours. Ciblées par nom interne, invariant quelle que soit la langue du système.</td></tr>
+    <tr><td class="num-col">3</td>
+        <td>Avec <code>-GrantAccessTo</code> : ajoute le compte aux deux groupes locaux décrits au chapitre 03.</td></tr>
+    <tr><td class="num-col">4</td>
+        <td>Active et dimensionne à 64 Mo les journaux <code>NTLM/Operational</code> et <code>Security-Netlogon/Operational</code>. Porte le journal Sécurité à 512 Mo, ou 1 Go s'il détecte un contrôleur de domaine.</td></tr>
+    <tr><td class="num-col">5</td>
+        <td>Relève la politique d'audit et les clés NTLM, les <strong>compare au rôle déclaré</strong>, et signale précisément ce qui manquerait pour que les événements soient produits.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="t">Ce qu'il ne fait pas, délibérément</span>
+  <p>Il ne modifie ni la politique d'audit ni les clés NTLM. Ces réglages touchent à LSA,
+  ne sont effectifs qu'après redémarrage de la machine, et méritent une décision explicite.
+  Le script se contente de vérifier et de vous dire quoi faire — voir le chapitre 09.</p>
+</div>
+
+<p>Le script est idempotent : relançable sans risque. <code>-Check</code> en fait un diagnostic
+pur, sans aucune modification.</p>
+
+<div class="phase"><span class="idx">ÉTAPE 3</span><h3>Vérifier puis surveiller</h3></div>
+<div class="where">depuis n'importe quel poste — lecture seule</div>
+
+<pre><code>.\watch-events-enhanced.ps1 -TestOnly
+.\watch-events-enhanced.ps1</code></pre>
+
+<p><code>-TestOnly</code> affiche machine par machine si elle répond, combien d'événements elle a
+renvoyés sur les deux dernières minutes, et la cause exacte de chaque échec avec la piste
+correspondante :</p>
+
+<pre><code>Verification des machines
+------------------------------------------------------------------------------
+  DCA.newgen.local           dc      WinRM  OK  (27 evenement(s) sur 2 min)
+  SRV25A.newgen.local        server  WinRM  OK  (10 evenement(s) sur 2 min)
+  WIN11A.newgen.local        client  WinRM  OK  (7 evenement(s) sur 2 min)
+------------------------------------------------------------------------------
+  3/3 machine(s) joignable(s)
+  3 session(s) WinRM persistante(s) ouverte(s), reutilisees a chaque tour</code></pre>
+
+<p>Sans <code>-TestOnly</code>, l'outil affiche d'abord l'historique configuré, signale la fin du
+rattrapage, puis bascule en direct. <kbd>Ctrl+C</kbd> arrête et affiche un récapitulatif.</p>
+
+<!-- ============================================================ 05 -->
+<h2 id="config"><span class="num">05</span>Le fichier de configuration</h2>
+
+<p><code>watch-config.json</code> est partagé par les deux scripts : une seule source de vérité.
+Les clés commençant par <code>_</code> sont ignorées — ce sont des commentaires, que le format
+JSON ne prévoit pas.</p>
+
+<h3>Clés globales</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Clé</th><th>Type</th><th>Défaut</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>domain</code></td><td>chaîne</td><td>vide</td><td>purement informatif, affiché en en-tête. N'influence aucun traitement.</td></tr>
+    <tr><td><code>transport</code></td><td><code>WinRM</code> ou <code>RPC</code></td><td><code>WinRM</code></td><td>transport par défaut, surchargeable par machine</td></tr>
+    <tr><td><code>intervalSeconds</code></td><td>entier</td><td><code>5</code></td><td>délai entre deux interrogations. En dessous de 2 secondes, la charge devient sensible sur un DC actif.</td></tr>
+    <tr><td><code>backfillMinutes</code></td><td>entier</td><td><code>5</code></td><td>historique affiché au démarrage. L'option <code>-Backfill</code> prime.</td></tr>
+    <tr><td><code>filters</code></td><td>objet</td><td>voir ci-dessous</td><td>règles de filtrage appliquées à l'affichage</td></tr>
+    <tr><td><code>machines</code></td><td>tableau</td><td>obligatoire</td><td>machines à surveiller</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Bloc <code>filters</code></h3>
+
+<p>Les filtres s'appliquent <strong>après</strong> la collecte, à l'affichage. Ils réduisent le
+bruit sans empêcher la collecte : un filtre large ne fait pas gagner de performance, il
+masque seulement des lignes.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Clé</th><th>Type</th><th>Défaut</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>ignoreMachineAccounts</code></td><td>booléen</td><td><code>true</code></td>
+        <td>masque les comptes se terminant par <code>$</code>, c'est-à-dire les comptes machine. Leur trafic de domaine noierait sinon complètement l'affichage.</td></tr>
+    <tr><td><code>ignoreAccounts</code></td><td>tableau de chaînes</td><td>comptes système</td>
+        <td>comptes à masquer, <strong>correspondance exacte</strong>. Ajoutez-y vos comptes de service bavards.</td></tr>
+    <tr><td><code>ignoreLogonTypes</code></td><td>tableau d'entiers</td><td><code>[5]</code></td>
+        <td>types d'ouverture de session à masquer. <code>5</code> = service, très bruyant. Voir le tableau ci-dessous.</td></tr>
+    <tr><td><code>ignoreSourceIps</code></td><td>tableau de chaînes</td><td><code>[]</code></td>
+        <td>adresses source à masquer, correspondance exacte. Prévu pour l'adresse du poste de supervision lorsqu'il est distinct des machines observées.</td></tr>
+    <tr><td><code>onlyUsers</code></td><td>tableau de chaînes</td><td><code>[]</code></td>
+        <td>si non vide, ne garde que ces comptes, <strong>correspondance partielle</strong>. L'option <code>-User</code> prime.</td></tr>
+    <tr><td><code>onlyProtocols</code></td><td>tableau de chaînes</td><td><code>[]</code></td>
+        <td>si non vide, ne garde que ces protocoles : <code>NTLM</code>, <code>Kerberos</code>, <code>Autre</code>. L'option <code>-Protocol</code> prime.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>Types d'ouverture de session</h4>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th class="num-col">Type</th><th>Signification</th><th>Pertinent ?</th></tr></thead>
+  <tbody>
+    <tr><td class="num-col">2</td><td>interactif, ouverture de session à la console</td><td>non</td></tr>
+    <tr><td class="num-col">3</td><td><strong>réseau</strong> — c'est le type des authentifications web et SMB</td><td><strong>oui</strong></td></tr>
+    <tr><td class="num-col">4</td><td>tâche planifiée</td><td>non</td></tr>
+    <tr><td class="num-col">5</td><td>service — très bruyant, masqué par défaut</td><td>non</td></tr>
+    <tr><td class="num-col">7</td><td>déverrouillage de station</td><td>non</td></tr>
+    <tr><td class="num-col">8</td><td>réseau en clair (authentification de base)</td><td>rarement</td></tr>
+    <tr><td class="num-col">9</td><td>nouvelles informations d'identification (<code>runas /netonly</code>)</td><td>parfois</td></tr>
+    <tr><td class="num-col">10</td><td>interactif à distance (RDP)</td><td>non</td></tr>
+    <tr><td class="num-col">11</td><td>interactif avec identifiants mis en cache</td><td>non</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="t">Attention en masquant le type 3</span>
+  <p>C'est le type de <strong>toutes</strong> les authentifications réseau, NTLM comme Kerberos.
+  L'ajouter à <code>ignoreLogonTypes</code> masquerait l'essentiel de ce que vous cherchez.</p>
+</div>
+
+<h3>Bloc <code>machines</code></h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Clé</th><th>Type</th><th>Obligatoire</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>chaîne</td><td><strong>oui</strong></td>
+        <td>nom de la machine, FQDN de préférence</td></tr>
+    <tr><td><code>role</code></td><td>chaîne</td><td>non, défaut <code>server</code></td>
+        <td>décide des journaux et identifiants interrogés</td></tr>
+    <tr><td><code>transport</code></td><td>chaîne</td><td>non</td>
+        <td>surcharge le transport global pour cette machine</td></tr>
+    <tr><td><code>label</code></td><td>chaîne</td><td>non</td>
+        <td>libellé libre, affiché uniquement dans le récapitulatif de connexion</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>Ce que chaque rôle interroge</h4>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Rôle</th><th>Journal Sécurité</th><th>Journaux opérationnels</th></tr></thead>
+  <tbody>
+    <tr><td><code>dc</code></td>
+        <td>4624, 4625, 4768, 4769, 4771, 4776</td>
+        <td><code>Security-Netlogon/Operational</code> et <code>NTLM/Operational</code></td></tr>
+    <tr><td><code>server</code></td>
+        <td>4624, 4625, 4648, 4672</td>
+        <td><code>NTLM/Operational</code></td></tr>
+    <tr><td><code>client</code></td>
+        <td>4624, 4625, 4648</td>
+        <td><code>NTLM/Operational</code></td></tr>
+    <tr><td><code>auto</code></td>
+        <td>tous les identifiants ci-dessus</td>
+        <td>les deux journaux ; ceux qui n'existent pas sur la machine sont ignorés sans erreur</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><code>auto</code> est pratique quand on ne veut pas classer ses machines, au prix de quelques
+requêtes inutiles. Sur un parc important, déclarer le rôle exact réduit sensiblement la
+charge.</p>
+
+<h3>Exemple complet</h3>
+
+<pre><code>{
+  "domain": "newgen.local",
+  "transport": "WinRM",
+  "intervalSeconds": 5,
+  "backfillMinutes": 5,
+
+  "filters": {
+    "ignoreMachineAccounts": true,
+    "ignoreAccounts": [ "SYSTEM", "ANONYMOUS LOGON", "LOCAL SERVICE",
+                        "NETWORK SERVICE", "svc-backup" ],
+    "ignoreLogonTypes": [ 5 ],
+    "ignoreSourceIps": [ ],
+    "onlyUsers": [ ],
+    "onlyProtocols": [ ]
+  },
+
+  "machines": [
+    { "name": "DCA.newgen.local",     "role": "dc",     "label": "DC principal" },
+    { "name": "DCB.newgen.local",     "role": "dc",     "label": "DC secondaire" },
+    { "name": "SRV25A.newgen.local",  "role": "server", "label": "Serveur web" },
+    { "name": "SRV-FILE01.newgen.local", "role": "server", "transport": "RPC",
+      "label": "Serveur de fichiers, sans WinRM" },
+    { "name": "WIN11A.newgen.local",  "role": "client", "label": "Poste de test" }
+  ]
+}</code></pre>
+
+<!-- ============================================================ 06 -->
+<h2 id="scripts"><span class="num">06</span>Référence des scripts</h2>
+
+<p>Chacun porte une aide intégrée, accessible par
+<code>Get-Help .\nom-du-script.ps1 -Full</code>.</p>
+
+<div class="note warn">
+  <span class="t">Stratégie d'exécution PowerShell</span>
+  <p>Les scripts téléchargés portent la marque « provient d'Internet ». Avant la première
+  exécution :</p>
+  <pre><code>Get-ChildItem -Recurse | Unblock-File
+Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy RemoteSigned -Force</code></pre>
+  <p>Si <code>Get-ExecutionPolicy -List</code> montre une valeur imposée par <code>MachinePolicy</code>
+  ou <code>UserPolicy</code>, c'est une GPO et seul l'administrateur du domaine peut la lever.</p>
+</div>
+
+<h3>prepare-monitoring.ps1</h3>
+<div class="where">une seule fois — <strong>administrateur local de chaque machine surveillée</strong></div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Défaut</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>-ConfigPath</code></td><td>chaîne</td><td><code>watch-config.json</code> à côté du script</td><td>fichier décrivant les machines à préparer</td></tr>
+    <tr><td><code>-Credential</code></td><td>PSCredential</td><td>session courante</td><td>compte utilisé pour joindre les machines distantes</td></tr>
+    <tr><td><code>-Check</code></td><td>commutateur</td><td>absent</td><td>diagnostic seul : ne modifie rien, n'active pas WinRM, se contente de rapporter l'état</td></tr>
+    <tr><td><code>-GrantAccessTo</code></td><td>chaîne <code>DOMAINE\compte</code></td><td>vide</td><td>donne à ce compte le droit de surveiller sur chaque machine : ajout aux groupes <em>Lecteurs des journaux d'événements</em> et <em>Utilisateurs de gestion à distance</em></td></tr>
+  </tbody>
+</table>
+</div>
+
+<pre><code>.\prepare-monitoring.ps1
+.\prepare-monitoring.ps1 -Check
+.\prepare-monitoring.ps1 -GrantAccessTo NEWGEN\svc-audit
+.\prepare-monitoring.ps1 -Credential (Get-Credential NEWGEN\Administrator)
+.\prepare-monitoring.ps1 -ConfigPath D:\conf\prod.json</code></pre>
+
+<h3>watch-events-enhanced.ps1</h3>
+<div class="where">à chaque observation — <strong>lecture seule, aucun droit d'administration requis</strong></div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Défaut</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>-ConfigPath</code></td><td>chaîne</td><td><code>watch-config.json</code> à côté du script</td><td>fichier de configuration à utiliser</td></tr>
+    <tr><td><code>-TestOnly</code></td><td>commutateur</td><td>absent</td><td>teste connectivité et droits sur chaque machine, affiche le nombre d'événements reçus sur 2 minutes, puis sort. <strong>À lancer en premier.</strong></td></tr>
+    <tr><td><code>-Backfill</code></td><td>entier</td><td>valeur du JSON</td><td>minutes d'historique affichées au démarrage. <code>0</code> démarre directement en direct.</td></tr>
+    <tr><td><code>-User</code></td><td>chaîne</td><td>vide</td><td>ne garde que ce compte, correspondance partielle. <strong>Prime sur</strong> <code>onlyUsers</code> du JSON.</td></tr>
+    <tr><td><code>-Protocol</code></td><td><code>NTLM</code>, <code>Kerberos</code> ou <code>Autre</code></td><td>vide</td><td>ne garde qu'un protocole. <strong>Prime sur</strong> <code>onlyProtocols</code> du JSON.</td></tr>
+    <tr><td><code>-CsvPath</code></td><td>chaîne</td><td>vide</td><td>archive chaque événement affiché dans ce fichier CSV, en ajout</td></tr>
+    <tr><td><code>-Credential</code></td><td>PSCredential</td><td>session courante</td><td>compte utilisé pour interroger les machines distantes</td></tr>
+  </tbody>
+</table>
+</div>
+
+<pre><code>.\watch-events-enhanced.ps1 -TestOnly
+.\watch-events-enhanced.ps1
+.\watch-events-enhanced.ps1 -User jdupont -Backfill 30
+.\watch-events-enhanced.ps1 -Protocol NTLM -CsvPath C:\audit\ntlm.csv
+.\watch-events-enhanced.ps1 -Credential (Get-Credential) -ConfigPath D:\conf\prod.json</code></pre>
+
+<!-- ============================================================ 07 -->
+<h2 id="lecture"><span class="num">07</span>Lire l'affichage</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Colonne</th><th>Contenu</th></tr></thead>
+  <tbody>
+    <tr><td><code>HEURE</code></td><td>heure locale du poste de supervision, à la milliseconde</td></tr>
+    <tr><td><code>MACHINE</code></td><td>nom court de la machine d'origine</td></tr>
+    <tr><td><code>ROLE</code></td><td><code>DC</code>, <code>SRV</code>, <code>CLI</code> ou <code>AUT</code></td></tr>
+    <tr><td><code>ID</code></td><td>identifiant de l'événement</td></tr>
+    <tr><td><code>PROTOCOLE</code></td><td>libellé en clair : <code>NTLM / NTLM V2</code>, <code>Kerberos TGS</code>, <code>NTLM validation DC</code>…</td></tr>
+    <tr><td><code>COMPTE / DETAIL</code></td><td>compte concerné, adresse source entre crochets, puis les champs utiles de l'événement</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Le code couleur</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Couleur</th><th>Signification</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag ntlm">ambre</span></td><td>authentification NTLM réussie</td></tr>
+    <tr><td><span class="tag kerb">cyan</span></td><td>authentification Kerberos réussie</td></tr>
+    <tr><td><span style="color:var(--err);font-weight:600">rouge</span></td><td>échec, quel que soit le protocole</td></tr>
+    <tr><td><span style="color:var(--fg-mut);font-weight:600">gris</span></td><td>événement sans protocole d'authentification (privilèges spéciaux, identifiants explicites)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Les lignes de service</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Ligne</th><th>Signification</th></tr></thead>
+  <tbody>
+    <tr><td><code>--- fin de l'historique, surveillance en direct ---</code></td>
+        <td>sépare le rattrapage initial du temps réel</td></tr>
+    <tr><td><code>[!] MACHINE ne repond plus : &lt;cause&gt;</code></td>
+        <td>perte de contact. L'outil continue avec les autres machines.</td></tr>
+    <tr><td><code>[+] MACHINE de nouveau joignable</code></td>
+        <td>reprise. Les machines absentes sont retentées une itération sur six.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>À l'arrêt par <kbd>Ctrl+C</kbd>, un récapitulatif affiche le nombre d'événements montrés,
+ventilé par protocole, et le nombre d'échecs.</p>
+
+<h3>Export CSV</h3>
+
+<pre><code>.\watch-events-enhanced.ps1 -CsvPath C:\audit\auth.csv</code></pre>
+
+<p>Chaque événement affiché est aussi écrit dans le fichier, en ajout. Les colonnes sont
+<code>Time, Machine, Role, Id, Protocol, Kind, Success, User, Domain, Ip, Detail</code>.</p>
+
+<!-- ============================================================ 08 -->
+<h2 id="evenements"><span class="num">08</span>Les événements collectés</h2>
+
+<h3>Journal Sécurité</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th class="num-col">ID</th><th>Machine</th><th>Signification</th><th>Protocole</th></tr></thead>
+  <tbody>
+    <tr><td class="num-col">4624</td><td>toutes</td><td>ouverture de session réussie ; le type 3 est l'authentification réseau</td><td>les deux</td></tr>
+    <tr><td class="num-col">4625</td><td>toutes</td><td>échec d'ouverture de session ; le champ <code>Sub Status</code> donne la cause</td><td>les deux</td></tr>
+    <tr><td class="num-col">4648</td><td>client, serveur</td><td>ouverture avec des identifiants explicites (<code>runas</code>)</td><td>—</td></tr>
+    <tr><td class="num-col">4672</td><td>serveur</td><td>privilèges spéciaux attribués à la session</td><td>—</td></tr>
+    <tr><td class="num-col">4776</td><td>DC</td><td>validation des informations d'identification</td><td><span class="tag ntlm">NTLM</span></td></tr>
+    <tr><td class="num-col">4768</td><td>DC</td><td>demande d'un ticket d'authentification (TGT)</td><td><span class="tag kerb">Kerberos</span></td></tr>
+    <tr><td class="num-col">4769</td><td>DC</td><td>demande d'un ticket de service</td><td><span class="tag kerb">Kerberos</span></td></tr>
+    <tr><td class="num-col">4771</td><td>DC</td><td>échec de pré-authentification</td><td><span class="tag kerb">Kerberos</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Journaux opérationnels NTLM</h3>
+
+<p>La numérotation a changé avec Windows Server 2025 et Windows 11 récent, et les
+événements du contrôleur de domaine proviennent d'un <strong>fournisseur différent</strong>, donc
+d'un autre journal. C'est une source d'erreur classique : on cherche les traces du DC dans
+<code>NTLM/Operational</code> et on ne trouve rien.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Rôle</th><th class="num-col">Info</th><th class="num-col">Avertissement</th><th>Journal</th><th>Couvre</th></tr></thead>
+  <tbody>
+    <tr><td>Client (initiateur)</td><td class="num-col">4020</td><td class="num-col">4021</td><td><code>NTLM/Operational</code></td><td>tentative NTLM sortante</td></tr>
+    <tr><td>Client — blocage</td><td class="num-col">—</td><td class="num-col">4015</td><td><code>NTLM/Operational</code></td><td>NTLM sortant refusé par la stratégie</td></tr>
+    <tr><td>Serveur de ressource</td><td class="num-col">4022</td><td class="num-col">4023</td><td><code>NTLM/Operational</code></td><td>authentification NTLM entrante</td></tr>
+    <tr><td>DC, même domaine</td><td class="num-col">4032</td><td class="num-col">4033</td><td><code>Security-Netlogon/Operational</code></td><td>validation d'un compte du domaine du DC</td></tr>
+    <tr><td>DC, inter-domaines</td><td class="num-col">4030</td><td class="num-col">4031</td><td><code>Security-Netlogon/Operational</code></td><td>authentification traversant une approbation</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Sur Windows Server 2022 et antérieurs, ces rôles correspondaient aux événements 8001 et
+8002 pour le client, 8003 pour le serveur de ressource et 8004 pour le DC, tous dans
+<code>NTLM/Operational</code>. <strong>L'outil accepte les deux numérotations</strong>, ce qui permet de
+surveiller un parc hétérogène sans configuration particulière.</p>
+
+<h3>Ce que contient un événement 4022 ou 4023</h3>
+
+<p>Les nouveaux événements sont nettement plus riches que les anciens : version NTLM,
+drapeaux négociés, état de la liaison de canal, nom de service ciblé, processus appelant
+et code de statut exact.</p>
+
+<pre><code>A remote client is using NTLM to authenticate to this workstation.
+  Process Name: svchost (RemoteRegistry)
+  Username: Administrator        Domain: WIN-R37PMT2RIAV
+  Client IP: 10.0.0.12
+  NTLM Version: NTLMv2           Session Key Status: Present
+  Channel Binding: Supported     Service Binding: SRV25A
+  MIC Status: Protected          AvlFlags String: MIC Provided, Target unverified
+  Status: 0xC000006D  —  The attempted logon is invalid.</code></pre>
+
+<p>Le champ <code>Process Name</code> est précieux pour un inventaire : il nomme l'application
+responsable de l'authentification NTLM, et donc celle qu'il faudra corriger ou remplacer.</p>
+
+<h3>Codes de statut fréquents</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th class="num-col">Code</th><th>Signification</th></tr></thead>
+  <tbody>
+    <tr><td class="num-col">0x00000000</td><td>succès</td></tr>
+    <tr><td class="num-col">0xC000006A</td><td>mot de passe incorrect</td></tr>
+    <tr><td class="num-col">0xC000006D</td><td>échec générique d'ouverture de session</td></tr>
+    <tr><td class="num-col">0xC0000064</td><td>le compte n'existe pas</td></tr>
+    <tr><td class="num-col">0xC0000234</td><td>compte verrouillé</td></tr>
+    <tr><td class="num-col">0xC000015B</td><td>type d'ouverture de session refusé à ce compte</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============================================================ 09 -->
+<h2 id="audit"><span class="num">09</span>Activer l'audit sur les cibles</h2>
+
+<p>L'outil ne crée pas les événements, il les lit. Si l'audit n'est pas activé, la
+connexion réussira et l'affichage restera vide. <code>prepare-monitoring.ps1</code> détecte ce
+cas et le signale, mais ne corrige pas : ces réglages touchent à LSA, ne sont effectifs
+qu'après redémarrage, et méritent une décision explicite.</p>
+
+<div class="note err">
+  <span class="t">Trois règles qui coûtent cher à ignorer</span>
+  <p><strong>Les paramètres NTLM du registre ne sont lus qu'au démarrage.</strong> Tant que la
+  machine n'a pas redémarré, lsass continue avec l'ancienne configuration. Les symptômes
+  sont trompeurs : boucle d'invites, événement 4015, ou absence totale d'événement.</p>
+  <p><strong>Netlogon doit être redémarré</strong> après modification de l'audit NTLM sur un
+  contrôleur de domaine, faute de quoi rien n'apparaît.</p>
+  <p><strong>Une GPO écrase le registre.</strong> Si vos réglages manuels disparaissent, cherchez
+  la stratégie qui les impose plutôt que de les réappliquer.</p>
+</div>
+
+<h3>Sur un serveur de ressources</h3>
+
+<pre><code><span class="c"># Audit des ouvertures de session (4624 / 4625)</span>
+auditpol /set /subcategory:"{0CCE9215-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+
+<span class="c"># Audit du trafic NTLM entrant (4022 / 4023) : 2 = tout auditer</span>
+Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' `
+  -Name AuditReceivingNTLMTraffic -Value 2 -Type DWord
+
+Restart-Computer</code></pre>
+
+<h3>Sur un poste client</h3>
+
+<pre><code><span class="c"># Audit du NTLM sortant (4020) : 0 = autoriser sans auditer,</span>
+<span class="c">#                                1 = auditer, 2 = refuser</span>
+Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0' `
+  -Name RestrictSendingNTLMTraffic -Value 1 -Type DWord
+
+Restart-Computer</code></pre>
+
+<div class="note">
+  <span class="t">La valeur 1 n'empêche rien</span>
+  <p>Elle se contente d'auditer ; seule la valeur <code>2</code> refuse réellement le NTLM
+  sortant. Si vous observez un événement 4015 « <em>Outgoing NTLM authentication traffic to
+  remote servers that is blocked</em> » après avoir mis <code>1</code>, c'est que la machine n'a pas
+  encore redémarré et que lsass applique l'ancienne valeur.</p>
+</div>
+
+<h3>Sur un contrôleur de domaine</h3>
+
+<pre><code><span class="c"># Validation des informations d'identification (4776)</span>
+auditpol /set /subcategory:"{0CCE923F-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+<span class="c"># Service d'authentification Kerberos (4768) et tickets de service (4769)</span>
+auditpol /set /subcategory:"{0CCE9242-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+auditpol /set /subcategory:"{0CCE9240-69AE-11D9-BED3-505054503030}" /success:enable /failure:enable
+
+<span class="c"># Audit NTLM a l'echelle du domaine (4032 / 4033) : 7 = tout auditer</span>
+Set-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters' `
+  -Name AuditNTLMInDomain -Value 7 -Type DWord
+
+Restart-Service Netlogon -Force</code></pre>
+
+<p>Les sous-catégories d'audit sont désignées par GUID plutôt que par libellé : cela évite
+de dépendre de la langue du système.</p>
+
+<p>Équivalent par GPO, à privilégier sur un parc : <em>Configuration ordinateur → Stratégies
+→ Paramètres Windows → Paramètres de sécurité → Stratégies locales → Options de sécurité</em>,
+puis les entrées commençant par <em>Sécurité réseau : Restreindre NTLM</em>.</p>
+
+<h3>Dimensionner les journaux</h3>
+
+<p><code>prepare-monitoring.ps1</code> s'en charge, mais à la main :</p>
+
+<pre><code>wevtutil sl Microsoft-Windows-NTLM/Operational /e:true /ms:67108864
+wevtutil sl Microsoft-Windows-Security-Netlogon/Operational /e:true /ms:67108864
+wevtutil sl Security /ms:536870912</code></pre>
+
+<div class="note warn">
+  <span class="t">Volume</span>
+  <p><code>AuditNTLMInDomain = 7</code> journalise <strong>toutes</strong> les authentifications NTLM du
+  domaine. C'est ce qu'on veut pour un inventaire, mais le volume peut être considérable
+  sur un domaine actif. Dimensionnez les journaux en conséquence et prévoyez une durée de
+  campagne limitée.</p>
+</div>
+
+<!-- ============================================================ 10 -->
+<h2 id="inventaire"><span class="num">10</span>Campagne d'inventaire NTLM</h2>
+
+<p>Le cas d'usage le plus utile de cet outil : établir qui utilise encore NTLM avant
+d'envisager de le restreindre. La démarche typique, en cinq temps.</p>
+
+<div class="seq">
+  <div class="hd">Démarche d'inventaire</div>
+  <div class="step"><span class="n">1</span><div>
+    <div class="flow">Activer l'audit</div>
+    <div class="d">Sur les DC (<code>AuditNTLMInDomain = 7</code>) et sur les serveurs sensibles
+    (<code>AuditReceivingNTLMTraffic = 2</code>). Sur les postes, <code>RestrictSendingNTLMTraffic = 1</code>
+    si vous voulez identifier les <em>applications</em> responsables.</div>
+  </div></div>
+  <div class="step"><span class="n">2</span><div>
+    <div class="flow">Collecter dans la durée</div>
+    <div class="d"><code>-CsvPath</code> sur plusieurs semaines, en couvrant les périodes de
+    clôture et de maintenance où s'exécutent des traitements rares.</div>
+  </div></div>
+  <div class="step"><span class="n">3</span><div>
+    <div class="flow">Identifier les couples et les applications</div>
+    <div class="d">Quels clients vers quels serveurs, et avec quel binaire. Le champ
+    <code>Process Name</code> des événements 4015 et 4020 désigne précisément le responsable.</div>
+  </div></div>
+  <div class="step"><span class="n">4</span><div>
+    <div class="flow">Traiter les cas un par un</div>
+    <div class="d">SPN manquant, accès par adresse IP, alias DNS sans SPN, application
+    réellement incapable de faire du Kerberos. Les trois premiers se corrigent.</div>
+  </div></div>
+  <div class="step"><span class="n">5</span><div>
+    <div class="flow">Basculer progressivement</div>
+    <div class="d">Mode blocage par exceptions à l'aide de <code>ClientAllowedNTLMServers</code> et
+    <code>DCAllowedNTLMServers</code>, avant d'envisager un refus généralisé.</div>
+  </div></div>
+</div>
+
+<h3>Exploiter le CSV</h3>
+
+<pre><code><span class="c"># Quels comptes utilisent encore NTLM, et combien de fois ?</span>
+Import-Csv C:\audit\auth.csv |
+  Where-Object Kind -eq 'NTLM' |
+  Group-Object User | Sort-Object Count -Descending |
+  Select-Object Count, Name
+
+<span class="c"># Quelles machines emettent du NTLM, vers quelles cibles ?</span>
+Import-Csv C:\audit\auth.csv |
+  Where-Object Id -eq '4020' |
+  Group-Object Machine, Detail |
+  Select-Object Count, Name
+
+<span class="c"># Repartition NTLM / Kerberos par serveur</span>
+Import-Csv C:\audit\auth.csv |
+  Where-Object Id -eq '4624' |
+  Group-Object Machine, Kind |
+  Sort-Object Name | Select-Object Count, Name
+
+<span class="c"># Tous les echecs, par compte et par cause</span>
+Import-Csv C:\audit\auth.csv |
+  Where-Object Success -eq 'False' |
+  Group-Object User, Protocol | Select-Object Count, Name</code></pre>
+
+<div class="note">
+  <span class="t">Un angle mort à connaître</span>
+  <p>L'audit NTLM du DC ne voit que les authentifications de <strong>comptes de domaine</strong>.
+  Les authentifications NTLM avec des <em>comptes locaux</em> se valident sur la machine
+  cible, sans passer par le DC : seul l'audit du serveur de ressources
+  (<code>AuditReceivingNTLMTraffic</code>) les révèle. Si vous ne surveillez que vos DC, vous les
+  manquerez entièrement.</p>
+</div>
+
+<!-- ============================================================ 11 -->
+<h2 id="depannage"><span class="num">11</span>Dépannage</h2>
+
+<h3>Connexion et droits</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause et correctif</th></tr></thead>
+  <tbody>
+    <tr><td><code>-TestOnly</code> : machine <strong>INJOIGNABLE</strong></td>
+        <td>Le message affiche la cause exacte. Dans l'ordre : la machine est-elle allumée (<code>Test-NetConnection &lt;nom&gt; -Port 5985</code>) ? WinRM est-il actif (<code>Enable-PSRemoting -Force</code>) ? Le compte a-t-il les droits (<code>prepare-monitoring.ps1 -GrantAccessTo DOMAINE\compte</code>) ?</td></tr>
+    <tr><td><em>Access is denied</em> alors que le compte est bien dans <em>Lecteurs des journaux d'événements</em></td>
+        <td>En WinRM, ce groupe ne suffit pas : il faut aussi <em>Utilisateurs de gestion à distance</em>, sans quoi la session WinRM elle-même est refusée. Lancez <code>prepare-monitoring.ps1 -GrantAccessTo</code>, ou basculez cette machine en <code>"transport": "RPC"</code>.</td></tr>
+    <tr><td>Droits accordés mais toujours refusé</td>
+        <td>L'appartenance à un groupe n'est évaluée qu'à l'ouverture de session. Fermez puis rouvrez la session du compte d'audit sur le poste de supervision.</td></tr>
+    <tr><td>L'amorçage WMI/DCOM échoue</td>
+        <td>Le compte n'est pas administrateur de la cible, ou les ports RPC sont filtrés. Lancez <code>Enable-PSRemoting -Force</code> directement sur la machine.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Collecte et affichage</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause et correctif</th></tr></thead>
+  <tbody>
+    <tr><td>Connexion réussie mais <strong>0 événement</strong></td>
+        <td>Normal sur une machine calme. Si cela persiste pendant un test, l'audit n'est pas actif : <code>prepare-monitoring.ps1 -Check</code> compare la configuration au rôle déclaré. Voir le chapitre 09.</td></tr>
+    <tr><td>Aucun événement du DC alors que les serveurs en produisent</td>
+        <td>Les événements NTLM du DC sont dans <code>Security-Netlogon/Operational</code>, un journal distinct qui doit être activé, et <code>AuditNTLMInDomain</code> doit valoir 7. Après modification, <code>Restart-Service Netlogon -Force</code>.</td></tr>
+    <tr><td>Aucun événement 4020 sur les clients</td>
+        <td><code>RestrictSendingNTLMTraffic = 0</code> autorise sans auditer. Passez à <code>1</code> puis redémarrez le poste.</td></tr>
+    <tr><td>Flot de <strong>4624 Kerberos</strong> depuis l'adresse du poste de supervision</td>
+        <td>Ce sont les connexions d'administration de l'outil. En WinRM, les sessions persistantes limitent cela à une ouverture par machine au démarrage. En RPC, chaque tour se reconnecte : augmentez <code>intervalSeconds</code>, ou renseignez <code>ignoreSourceIps</code>.</td></tr>
+    <tr><td>Machines qui <strong>tombent et reviennent</strong> en boucle, sans cause affichée</td>
+        <td>Version antérieure du script, qui confondait « aucun événement » et « échec de connexion ». Mettez à jour.</td></tr>
+    <tr><td>Horodatages incohérents entre machines</td>
+        <td>Dérive d'horloge. <code>w32tm /resync</code> puis <code>w32tm /query /status</code>.</td></tr>
+    <tr><td>Le fichier CSV ne se remplit pas</td>
+        <td>Le script signale l'erreur une fois puis cesse d'écrire. Vérifiez les droits sur le dossier, et qu'aucun tableur ne garde le fichier ouvert en exclusivité.</td></tr>
+    <tr><td>Affichage trop bavard</td>
+        <td>Ajoutez vos comptes de service à <code>ignoreAccounts</code>, ou isolez votre cible avec <code>-User</code>. Sur un DC, le trafic de domaine normal domine largement.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Configuration</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause et correctif</th></tr></thead>
+  <tbody>
+    <tr><td><em>machine(s) sans nom dans …</em></td>
+        <td>Un champ <code>name</code> est vide dans le JSON. Renseignez-le ou supprimez l'entrée.</td></tr>
+    <tr><td><em>Le fichier de configuration n'est pas un JSON valide</em></td>
+        <td>Virgule en trop avant une accolade fermante, ou guillemets manquants. Validez avec <code>Get-Content watch-config.json -Raw | ConvertFrom-Json</code>.</td></tr>
+    <tr><td>Un script refuse de s'exécuter, « n'est pas signé numériquement »</td>
+        <td>Stratégie d'exécution. <code>Unblock-File</code> puis <code>Set-ExecutionPolicy RemoteSigned</code>, ou <code>powershell.exe -ExecutionPolicy Bypass -File …</code> pour un usage ponctuel.</td></tr>
+    <tr><td>La collecte elle-même utilise NTLM</td>
+        <td>Une machine est déclarée par adresse IP : impossible de construire un SPN. Utilisez le FQDN.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============================================================ 12 -->
+<h2 id="sources"><span class="num">12</span>Code source</h2>
+
+<p>Les trois fichiers doivent rester dans le même dossier : les scripts cherchent
+<code>watch-config.json</code> à côté d'eux, sauf indication contraire par <code>-ConfigPath</code>.</p>
+
+<pre><code>watch-events-enhanced\
+├─ prepare-monitoring.ps1      prépare les machines à distance, vérifie l'audit
+├─ watch-config.json           machines surveillées, transport, filtres
+└─ watch-events-enhanced.ps1   collecte et affichage du flux unifié</code></pre>
+
+<details class="file">
+  <summary>watch-config.json <span class="desc">— configuration partagée par les deux scripts</span></summary>
+  <pre><code>{
+  "_lisezmoi": [
+    "Configuration partagee par prepare-monitoring.ps1 et watch-events-enhanced.ps1.",
+    "Les cles commencant par _ sont ignorees : ce sont des commentaires.",
+    "",
+    "=== transport ===",
+    "  'WinRM'  port 5985, collecte en parallele. Le compte doit etre administrateur",
+    "           local de la cible (ou membre de 'Remote Management Users').",
+    "           Activation : Enable-PSRemoting -Force",
+    "  'RPC'    port 135 + ports dynamiques, collecte sequentielle. Le compte peut",
+    "           n'etre que membre de 'Event Log Readers'. Moindre privilege.",
+    "           Activation : Enable-NetFirewallRule -Name RemoteEventLogSvc*",
+    "  Valeur globale ci-dessous, surchargeable machine par machine.",
+    "",
+    "=== role : decide des journaux interroges ===",
+    "  'dc'      Securite 4624/4625/4768/4769/4771/4776",
+    "            + Microsoft-Windows-Security-Netlogon/Operational (4030-4033)",
+    "            + Microsoft-Windows-NTLM/Operational",
+    "  'server'  Securite 4624/4625/4648/4672",
+    "            + Microsoft-Windows-NTLM/Operational (4022/4023, 8003)",
+    "  'client'  Microsoft-Windows-NTLM/Operational (4015/4020/4021, 8001)",
+    "            + Securite 4624/4625/4648",
+    "  'auto'    tous les journaux ci-dessus ; ceux qui n'existent pas sur la",
+    "            machine sont simplement ignores. Pratique si vous ne voulez pas",
+    "            classer vos machines, au prix de quelques requetes inutiles.",
+    "",
+    "=== filtres ===",
+    "  ignoreMachineAccounts  ignore les comptes se terminant par $ (comptes machine)",
+    "  ignoreAccounts         comptes a masquer, correspondance exacte",
+    "  ignoreLogonTypes       types d'ouverture a masquer. 5 = service, tres bruyant.",
+    "                         2 = interactif, 3 = reseau, 10 = RDP",
+    "  ignoreSourceIps        adresses source a masquer. Utile pour l'adresse du",
+    "                         poste de supervision lui-meme : ses connexions",
+    "                         d'administration ne sont pas le sujet. Le script",
+    "                         utilise des sessions WinRM persistantes, donc une",
+    "                         seule ouverture de session par machine au demarrage",
+    "                         et non une a chaque tour, mais elle apparait quand",
+    "                         meme dans l'historique initial.",
+    "  onlyUsers              si non vide, ne garde que ces comptes (partiel)",
+    "  onlyProtocols          si non vide : 'NTLM', 'Kerberos' ou 'Autre'",
+    "  Les options -User et -Protocol de la ligne de commande priment sur ces deux",
+    "  dernieres listes.",
+    "",
+    "=== exemples de machines ===",
+    "  { \"name\": \"DC02.monlab.local\", \"role\": \"dc\" }",
+    "  { \"name\": \"SRV-FILE01.monlab.local\", \"role\": \"server\", \"transport\": \"RPC\" }",
+    "  { \"name\": \"10.0.0.42\", \"role\": \"auto\", \"label\": \"machine hors DNS\" }",
+    "  Le FQDN est preferable a l'adresse IP : Kerberos en a besoin pour la",
+    "  connexion distante, sinon la collecte retombe elle-meme sur NTLM."
+  ],
+
+  "domain": "",
+
+  "transport": "WinRM",
+  "intervalSeconds": 5,
+  "backfillMinutes": 5,
+
+  "filters": {
+    "ignoreMachineAccounts": true,
+    "ignoreAccounts": [
+      "SYSTEM",
+      "ANONYMOUS LOGON",
+      "LOCAL SERVICE",
+      "NETWORK SERVICE",
+      "DWM-1",
+      "DWM-2",
+      "UMFD-0",
+      "UMFD-1",
+      "UMFD-2"
+    ],
+    "ignoreLogonTypes": [ 5 ],
+    "ignoreSourceIps": [],
+    "onlyUsers": [],
+    "onlyProtocols": []
+  },
+
+  "machines": [
+    { "name": "", "role": "dc",     "label": "Controleur de domaine" },
+    { "name": "", "role": "server", "label": "Serveur web" },
+    { "name": "", "role": "client", "label": "Poste de test" }
+  ]
+}</code></pre>
+</details>
+
+<details class="file">
+  <summary>prepare-monitoring.ps1 <span class="desc">— active WinRM et les journaux à distance, accorde les droits, vérifie l'audit par rôle</span></summary>
+  <pre><code>#Requires -Version 5.1
+&lt;#
+.SYNOPSIS
+  Prepare toutes les machines declarees dans watch-config.json pour la
+  surveillance centralisee : transport distant, journaux d'evenements,
+  et verification de la politique d'audit.
+
+.DESCRIPTION
+  A executer UNE SEULE FOIS depuis le poste de supervision, avec un compte
+  administrateur du domaine. Le script traite chaque machine de la liste :
+
+    1. Teste WinRM. S'il ne repond pas, tente de l'activer a distance en
+       lancant Enable-PSRemoting via WMI/DCOM, puis re-teste.
+    2. Ouvre la regle de pare-feu "Gestion a distance du journal des
+       evenements", qui fournit le transport RPC de secours.
+    3. Active et dimensionne les journaux Microsoft-Windows-NTLM/Operational
+       et Microsoft-Windows-Security-Netlogon/Operational, et agrandit le
+       journal Securite.
+    4. Releve la politique d'audit et les cles NTLM, et signale ce qui
+       manquerait pour que les evenements soient reellement produits.
+
+  Le script ne modifie PAS la politique d'audit ni les cles NTLM : c'est le
+  role de setup-webserver.ps1, setup-dc.ps1 et setup-client.ps1. Il se contente
+  de verifier et de vous dire quoi lancer.
+
+.PARAMETER ConfigPath
+  watch-config.json decrivant les machines. Par defaut a cote du script.
+
+.PARAMETER Credential
+  Compte administrateur du domaine. Par defaut, la session courante.
+
+.PARAMETER Check
+  Ne modifie rien, se contente du diagnostic.
+
+.PARAMETER GrantAccessTo
+  Compte a qui donner le droit de surveiller, sur chaque machine de la liste.
+  Il est ajoute aux groupes locaux "Lecteurs des journaux d'evenements"
+  (lecture du journal Securite a distance) et "Utilisateurs de gestion a
+  distance" (ouverture de session WinRM sans etre administrateur).
+
+  Permet de separer les roles : un administrateur lance ce script UNE FOIS,
+  puis un compte d'audit non privilegie fait tourner watch-events-enhanced.ps1
+  au quotidien.
+
+  Format DOMAINE\compte, par exemple NEWGEN\svc-audit.
+
+.NOTES
+  PRIVILEGES REQUIS POUR CE SCRIPT : administrateur local de chaque machine
+  surveillee. Il active WinRM, modifie des regles de pare-feu, redimensionne
+  des journaux et, avec -GrantAccessTo, modifie des groupes locaux. Un
+  administrateur du domaine remplit ces conditions partout.
+
+  PRIVILEGES REQUIS POUR watch-events-enhanced.ps1 : beaucoup moins. Voir
+  -GrantAccessTo ci-dessus.
+
+.EXAMPLE
+  .\prepare-monitoring.ps1
+.EXAMPLE
+  .\prepare-monitoring.ps1 -Check
+.EXAMPLE
+  .\prepare-monitoring.ps1 -GrantAccessTo NEWGEN\svc-audit
+.EXAMPLE
+  .\prepare-monitoring.ps1 -Credential (Get-Credential NEWGEN\Administrator)
+#&gt;
+[CmdletBinding()]
+param(
+    [string]$ConfigPath,
+    [System.Management.Automation.PSCredential]$Credential,
+    [switch]$Check,
+    [string]$GrantAccessTo
+)
+
+$ErrorActionPreference = 'Stop'
+
+function Title($t) { Write-Host "`n$t" -ForegroundColor Cyan; Write-Host ('-' * 78) -ForegroundColor DarkGray }
+function Ok($t)    { Write-Host "    [ok]   $t" -ForegroundColor Green }
+function Warn($t)  { Write-Host "    [! ]   $t" -ForegroundColor Yellow }
+function Bad($t)   { Write-Host "    [X ]   $t" -ForegroundColor Red }
+function Info($t)  { Write-Host "           $t" -ForegroundColor DarkGray }
+
+# =====================================================================
+# Configuration
+# =====================================================================
+
+if (-not $ConfigPath) { $ConfigPath = Join-Path $PSScriptRoot 'watch-config.json' }
+if (-not (Test-Path $ConfigPath)) { throw "Configuration introuvable : $ConfigPath" }
+
+$cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if (-not $cfg.machines) { throw "Aucune machine declaree dans $ConfigPath" }
+$empty = @($cfg.machines | Where-Object { -not $_.name -or -not ([string]$_.name).Trim() })
+if ($empty.Count) {
+    throw ("$($empty.Count) machine(s) sans nom dans $ConfigPath. " +
+           "Renseignez le champ 'name' (FQDN de preference), ou supprimez l'entree.")
+}
+
+$machines = @(foreach ($m in $cfg.machines) {
+    [pscustomobject]@{
+        Name  = [string]$m.name
+        Short = ([string]$m.name).Split('.')[0].ToUpper()
+        Role  = if ($m.role) { [string]$m.role } else { 'server' }
+        Label = if ($m.label) { [string]$m.label } else { '' }
+    }
+})
+
+Write-Host ''
+Write-Host '  Preparation des machines pour la surveillance centralisee' -ForegroundColor Cyan
+Write-Host "  configuration : $ConfigPath" -ForegroundColor DarkGray
+Write-Host "  compte        : $(if ($Credential) { $Credential.UserName } else { "$env:USERDOMAIN\$env:USERNAME" })" -ForegroundColor DarkGray
+Write-Host "  mode          : $(if ($Check) { 'verification seule, aucune modification' } else { 'configuration' })" -ForegroundColor DarkGray
+if ($GrantAccessTo) {
+    Write-Host "  droits pour   : $GrantAccessTo (Event Log Readers + Remote Management Users)" -ForegroundColor DarkGray
+}
+Write-Host '  Ce script exige des droits d''ADMINISTRATEUR sur chaque machine surveillee.' -ForegroundColor DarkGray
+
+# =====================================================================
+# Bloc execute sur chaque machine distante
+# =====================================================================
+
+$Configure = {
+    param([bool]$ReadOnly, [string]$GrantTo)
+
+    $r = [ordered]@{
+        Computer   = $env:COMPUTERNAME
+        Os         = (Get-CimInstance Win32_OperatingSystem).Caption
+        IsDC       = $false
+        Changes    = @()
+        Problems   = @()
+        Logs       = @{}
+        Audit      = @{}
+        Ntlm       = @{}
+    }
+
+    try {
+        # ProductType 2 = controleur de domaine
+        $r.IsDC = ((Get-CimInstance Win32_OperatingSystem).ProductType -eq 2)
+    } catch { }
+
+    # ---- 1. Regle de pare-feu RPC (transport de secours) ----
+    try {
+        # On cible les regles par leur NOM interne (invariant) et non par leur
+        # libelle, qui est traduit : "Gestion a distance du journal des
+        # evenements" sur un Windows francais.
+        $grp = Get-NetFirewallRule -Name 'RemoteEventLogSvc*' -ErrorAction SilentlyContinue
+        if ($grp) {
+            $off = @($grp | Where-Object { $_.Enabled -ne 'True' })
+            if ($off.Count -eq 0) {
+                $r.Changes += 'pare-feu RPC : deja ouvert'
+            } elseif ($ReadOnly) {
+                $r.Problems += "pare-feu RPC : $($off.Count) regle(s) desactivee(s)"
+            } else {
+                $off | Enable-NetFirewallRule
+                $r.Changes += "pare-feu RPC : $($off.Count) regle(s) activee(s)"
+            }
+        } else {
+            $r.Problems += 'regles de pare-feu RemoteEventLogSvc introuvables'
+        }
+    } catch {
+        $r.Problems += "pare-feu : $($_.Exception.Message)"
+    }
+
+    # ---- 2. Journaux d'evenements ----
+    $wanted = @(
+        @{ Name = 'Microsoft-Windows-NTLM/Operational';              Size = 67108864 }
+        @{ Name = 'Microsoft-Windows-Security-Netlogon/Operational'; Size = 67108864 }
+    )
+    foreach ($w in $wanted) {
+        try {
+            $cfgTxt = (&amp; wevtutil gl $w.Name 2&gt;&amp;1) -join "`n"
+            if ($LASTEXITCODE -ne 0 -or $cfgTxt -match 'Impossible|not be found|introuvable') {
+                $r.Logs[$w.Name] = 'absent sur cette version de Windows'
+                continue
+            }
+            $enabled = ($cfgTxt -match 'enabled:\s*true')
+            $size = if ($cfgTxt -match 'maxSize:\s*(\d+)') { [int64]$Matches[1] } else { 0 }
+
+            if ($enabled -and $size -ge $w.Size) {
+                $r.Logs[$w.Name] = "actif, $([int]($size/1MB)) Mo"
+            } elseif ($ReadOnly) {
+                $r.Logs[$w.Name] = "a corriger (actif=$enabled, $([int]($size/1MB)) Mo)"
+            } else {
+                if (-not $enabled) { &amp; wevtutil sl $w.Name /e:true 2&gt;&amp;1 | Out-Null }
+                if ($size -lt $w.Size) { &amp; wevtutil sl $w.Name /ms:$($w.Size) 2&gt;&amp;1 | Out-Null }
+                $r.Logs[$w.Name] = 'active et dimensionne'
+                $r.Changes += "journal $($w.Name) configure"
+            }
+        } catch {
+            $r.Logs[$w.Name] = "erreur : $($_.Exception.Message)"
+        }
+    }
+
+    # Journal Securite : 512 Mo, 1 Go sur un DC
+    try {
+        $target = if ($r.IsDC) { 1073741824 } else { 536870912 }
+        $secTxt = (&amp; wevtutil gl Security 2&gt;&amp;1) -join "`n"
+        $secSize = if ($secTxt -match 'maxSize:\s*(\d+)') { [int64]$Matches[1] } else { 0 }
+        if ($secSize -ge $target) {
+            $r.Logs['Security'] = "$([int]($secSize/1MB)) Mo"
+        } elseif ($ReadOnly) {
+            $r.Logs['Security'] = "$([int]($secSize/1MB)) Mo (a agrandir)"
+        } else {
+            &amp; wevtutil sl Security /ms:$target 2&gt;&amp;1 | Out-Null
+            $r.Logs['Security'] = "porte a $([int]($target/1MB)) Mo"
+            $r.Changes += 'journal Securite agrandi'
+        }
+    } catch {
+        $r.Logs['Security'] = "erreur : $($_.Exception.Message)"
+    }
+
+    # ---- 2 bis. Droits du compte d'audit ----
+    # Les groupes sont designes par leur SID connu, invariant quelle que soit
+    # la langue du systeme :
+    #   S-1-5-32-573  Lecteurs des journaux d'evenements
+    #   S-1-5-32-580  Utilisateurs de gestion a distance (WinRM sans admin)
+    # L'acces se fait par le fournisseur WinNT, qui fonctionne aussi bien sur
+    # un serveur membre que sur un controleur de domaine, ou ces groupes sont
+    # des groupes de domaine local du conteneur Builtin.
+    if ($GrantTo) {
+        $acct = $GrantTo.Split('\')[-1]
+        $adom = if ($GrantTo -match '\\') { $GrantTo.Split('\')[0] } else { $env:USERDOMAIN }
+
+        foreach ($wk in @(
+            @{ Sid = 'S-1-5-32-573'; Why = 'lecture du journal Securite a distance' }
+            @{ Sid = 'S-1-5-32-580'; Why = 'ouverture de session WinRM sans etre administrateur' }
+        )) {
+            try {
+                $sidObj = New-Object System.Security.Principal.SecurityIdentifier($wk.Sid)
+                $gName = ($sidObj.Translate([System.Security.Principal.NTAccount]).Value -split '\\')[-1]
+                $grpObj = [ADSI]"WinNT://$env:COMPUTERNAME/$gName,group"
+
+                $members = @()
+                try {
+                    foreach ($mb in @($grpObj.psbase.Invoke('Members'))) {
+                        $members += $mb.GetType().InvokeMember('Name', 'GetProperty', $null, $mb, $null)
+                    }
+                } catch { }
+
+                if ($members -contains $acct) {
+                    $r.Changes += "$gName : $GrantTo deja membre"
+                } elseif ($ReadOnly) {
+                    $r.Problems += "$gName : $GrantTo n'est pas membre ($($wk.Why))"
+                } else {
+                    $grpObj.Add("WinNT://$adom/$acct,user")
+                    $r.Changes += "$gName : $GrantTo ajoute ($($wk.Why))"
+                }
+            } catch {
+                $r.Problems += "groupe $($wk.Sid) : $($_.Exception.Message)"
+            }
+        }
+    }
+
+    # ---- 3. Releve de la politique d'audit (lecture seule) ----
+    # GUID de la categorie Logon/Logoff : insensible a la langue du systeme.
+    try {
+        # Les sous-categories sont elles aussi designees par GUID, ce qui evite
+        # de dependre du libelle traduit.
+        #   0CCE9215  Logon                 (Ouverture de session)
+        #   0CCE923F  Credential Validation (Validation des informations d'identification)
+        $pol = (&amp; auditpol /get /subcategory:"{0CCE9215-69AE-11D9-BED3-505054503030}" 2&gt;&amp;1) -join "`n"
+        if ($pol -match '(?m)^\s*\S.*?\s{2,}(\S.*?)\s*$' -and $pol -notmatch 'error|erreur') {
+            # Derniere ligne non vide : "&lt;sous-categorie&gt;   &lt;reglage&gt;"
+            $last = ($pol -split "`n" | Where-Object { $_ -match '\S' })[-1]
+            if ($last -match '\s{2,}(\S.*?)\s*$') { $r.Audit['Logon'] = $Matches[1].Trim() }
+        }
+        if (-not $r.Audit['Logon']) { $r.Audit['Logon'] = 'indetermine' }
+    } catch { $r.Audit['Logon'] = "erreur : $($_.Exception.Message)" }
+
+    if ($r.IsDC) {
+        try {
+            $pol2 = (&amp; auditpol /get /subcategory:"{0CCE923F-69AE-11D9-BED3-505054503030}" 2&gt;&amp;1) -join "`n"
+            $last2 = ($pol2 -split "`n" | Where-Object { $_ -match '\S' })[-1]
+            if ($last2 -match '\s{2,}(\S.*?)\s*$') { $r.Audit['CredentialValidation'] = $Matches[1].Trim() }
+            if (-not $r.Audit['CredentialValidation']) { $r.Audit['CredentialValidation'] = 'indetermine' }
+        } catch { }
+    }
+
+    # ---- 4. Releve des cles NTLM (lecture seule) ----
+    $msv = 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0'
+    $lsa = 'HKLM:\SYSTEM\CurrentControlSet\Control\Lsa'
+    $net = 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters'
+    function Reg($p, $n) { try { (Get-ItemProperty $p -Name $n -ErrorAction Stop).$n } catch { $null } }
+
+    $r.Ntlm['LmCompatibilityLevel']       = Reg $lsa 'LmCompatibilityLevel'
+    $r.Ntlm['AuditReceivingNTLMTraffic']  = Reg $msv 'AuditReceivingNTLMTraffic'
+    $r.Ntlm['RestrictSendingNTLMTraffic'] = Reg $msv 'RestrictSendingNTLMTraffic'
+    if ($r.IsDC) { $r.Ntlm['AuditNTLMInDomain'] = Reg $net 'AuditNTLMInDomain' }
+
+    [pscustomobject]$r
+}
+
+# =====================================================================
+# Helpers de connexion
+# =====================================================================
+
+function Test-WinRMUp {
+    param([string]$Name)
+    try {
+        $p = @{ ComputerName = $Name; ErrorAction = 'Stop' }
+        if ($Credential) { $p['Credential'] = $Credential }
+        Test-WSMan @p | Out-Null
+        return $true
+    } catch { return $false }
+}
+
+function Enable-WinRMViaDcom {
+    &lt;#  Amorcage : WinRM est injoignable, on lance Enable-PSRemoting sur la
+        cible en creant un processus via WMI/DCOM (ports 135 + dynamiques).
+        Necessite des droits d'administrateur sur la machine distante.       #&gt;
+    param([string]$Name)
+    try {
+        $opt = New-CimSessionOption -Protocol Dcom
+        $p = @{ ComputerName = $Name; SessionOption = $opt; ErrorAction = 'Stop' }
+        if ($Credential) { $p['Credential'] = $Credential }
+        $cs = New-CimSession @p
+
+        $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ' +
+               '"Enable-PSRemoting -Force -SkipNetworkProfileCheck; ' +
+               'Set-Service WinRM -StartupType Automatic; Start-Service WinRM"'
+
+        $res = Invoke-CimMethod -CimSession $cs -ClassName Win32_Process `
+                                -MethodName Create -Arguments @{ CommandLine = $cmd } -ErrorAction Stop
+        Remove-CimSession $cs -ErrorAction SilentlyContinue
+        return ($res.ReturnValue -eq 0)
+    } catch {
+        $script:lastDcomError = $_.Exception.Message
+        return $false
+    }
+}
+
+# =====================================================================
+# Traitement
+# =====================================================================
+
+$report = @()
+
+foreach ($m in $machines) {
+    $tag = if ($m.Label) { " - $($m.Label)" } else { '' }
+    Title "$($m.Name)   [role: $($m.Role)]$tag"
+
+    # ---- Transport ----
+    $up = Test-WinRMUp $m.Name
+    if ($up) {
+        Ok 'WinRM repond'
+    } else {
+        Warn 'WinRM ne repond pas'
+        if ($Check) {
+            Info 'mode -Check : aucune tentative d''activation'
+        } else {
+            Info 'tentative d''activation a distance via WMI/DCOM...'
+            if (Enable-WinRMViaDcom $m.Name) {
+                Info 'commande lancee, attente du demarrage du service (20 s)'
+                Start-Sleep -Seconds 20
+                $up = Test-WinRMUp $m.Name
+                if ($up) { Ok 'WinRM active et operationnel' }
+                else     { Bad 'WinRM toujours injoignable apres activation' }
+            } else {
+                Bad "amorcage DCOM impossible : $script:lastDcomError"
+            }
+        }
+    }
+
+    if (-not $up) {
+        Bad 'machine non configuree'
+        Info 'Pistes :'
+        Info '  - la machine est-elle allumee et joignable ? (Test-NetConnection -Port 135)'
+        Info '  - le compte est-il administrateur local de la cible ?'
+        Info '  - a defaut, ouvrez une session sur la machine et lancez :'
+        Info '      Enable-PSRemoting -Force'
+        Info '      Enable-NetFirewallRule -DisplayGroup "Remote Event Log Management"'
+        $report += [pscustomobject]@{ Machine = $m.Short; Role = $m.Role; Etat = 'INJOIGNABLE'; Detail = '' }
+        continue
+    }
+
+    # ---- Configuration ----
+    try {
+        $p = @{ ComputerName = $m.Name; ScriptBlock = $Configure
+                ArgumentList = @([bool]$Check, $GrantAccessTo); ErrorAction = 'Stop' }
+        if ($Credential) { $p['Credential'] = $Credential }
+        $res = Invoke-Command @p
+    } catch {
+        Bad "execution distante impossible : $($_.Exception.Message)"
+        $report += [pscustomobject]@{ Machine = $m.Short; Role = $m.Role; Etat = 'ECHEC'; Detail = $_.Exception.Message }
+        continue
+    }
+
+    Info "$($res.Os)$(if ($res.IsDC) { '   (controleur de domaine)' })"
+
+    foreach ($c in $res.Changes)  { Ok $c }
+    foreach ($pb in $res.Problems) { Warn $pb }
+
+    Write-Host '           Journaux :' -ForegroundColor DarkGray
+    foreach ($k in $res.Logs.Keys) {
+        $v = $res.Logs[$k]
+        $short = $k -replace '^Microsoft-Windows-', ''
+        if ($v -match 'erreur|absent|corriger') { Warn "  $short : $v" } else { Info "  $short : $v" }
+    }
+
+    # ---- Coherence audit / role ----
+    # "Succ" couvre l'anglais "Success" et le francais "Succes", sans accent
+    # ni dependance a la langue du systeme surveille.
+    $missing = @()
+    if ($res.Audit['Logon'] -notmatch 'Succ') {
+        $missing += "audit 'Ouverture de session' inactif (pas de 4624)"
+    }
+    switch ($m.Role) {
+        'dc' {
+            if ($res.Audit['CredentialValidation'] -notmatch 'Succ') {
+                $missing += "audit 'Validation des informations d'identification' inactif (4776)"
+            }
+            if ($res.Ntlm['AuditNTLMInDomain'] -ne 7) {
+                $missing += "AuditNTLMInDomain = $($res.Ntlm['AuditNTLMInDomain']) au lieu de 7"
+            }
+        }
+        'client' {
+            if ($res.Ntlm['RestrictSendingNTLMTraffic'] -ne 1) {
+                $missing += "RestrictSendingNTLMTraffic = $($res.Ntlm['RestrictSendingNTLMTraffic']) : pas d'evenement 4020 (1 = auditer)"
+            }
+        }
+        default {
+            if ($res.Ntlm['AuditReceivingNTLMTraffic'] -ne 2) {
+                $missing += "AuditReceivingNTLMTraffic = $($res.Ntlm['AuditReceivingNTLMTraffic']) au lieu de 2 : pas d'evenement 4022"
+            }
+        }
+    }
+
+    if ($missing.Count -eq 0) {
+        Ok 'politique d''audit coherente avec le role'
+        $etat = 'OK'
+    } else {
+        foreach ($x in $missing) { Warn $x }
+        $hint = switch ($m.Role) {
+            'dc'     { '.\setup-dc.ps1 puis Restart-Service Netlogon -Force' }
+            'client' { '.\setup-client.ps1 -ServerFqdn &lt;serveur&gt; puis redemarrer' }
+            default  { '.\setup-webserver.ps1' }
+        }
+        Info "-&gt; a lancer SUR la machine : $hint"
+        $etat = 'AUDIT INCOMPLET'
+    }
+
+    $report += [pscustomobject]@{
+        Machine = $m.Short
+        Role    = $m.Role
+        Etat    = $etat
+        Detail  = ($missing -join ' ; ')
+    }
+}
+
+# =====================================================================
+# Recapitulatif
+# =====================================================================
+
+Title 'Recapitulatif'
+$report | Format-Table -AutoSize | Out-String | Write-Host
+
+$ko = @($report | Where-Object { $_.Etat -ne 'OK' })
+if ($ko.Count -eq 0) {
+    Write-Host '  Toutes les machines sont pretes.' -ForegroundColor Green
+    Write-Host ''
+    Write-Host '  Etape suivante :' -ForegroundColor Cyan
+    Write-Host '    .\watch-events-enhanced.ps1 -TestOnly'
+    Write-Host '    .\watch-events-enhanced.ps1'
+    if (-not $GrantAccessTo) {
+        Write-Host ''
+        Write-Host '  Pour faire tourner la surveillance avec un compte NON administrateur :' -ForegroundColor Cyan
+        Write-Host '    .\prepare-monitoring.ps1 -GrantAccessTo DOMAINE\compte-audit'
+        Write-Host '  Ce compte n''aura alors que le droit de LIRE les journaux a distance.'
+    }
+} else {
+    Write-Host "  $($ko.Count) machine(s) a reprendre." -ForegroundColor Yellow
+    Write-Host '  Les reglages d''audit se font sur la machine elle-meme : ils touchent'
+    Write-Host '  a LSA et ne sont effectifs qu''apres redemarrage, ce que ce script ne'
+    Write-Host '  declenche pas a votre place.'
+}
+Write-Host ''</code></pre>
+</details>
+
+<details class="file">
+  <summary>watch-events-enhanced.ps1 <span class="desc">— sessions persistantes, collecte distante, fusion, tri, export CSV</span></summary>
+  <pre><code>#Requires -Version 5.1
+&lt;#
+.SYNOPSIS
+  Surveillance centralisee des evenements d'authentification NTLM et Kerberos
+  sur plusieurs machines, depuis un seul poste.
+
+.DESCRIPTION
+  Lit un fichier de configuration JSON decrivant les controleurs de domaine, les
+  serveurs de ressources et les postes clients a surveiller, puis interroge en
+  continu leurs journaux d'evenements. Chaque ligne affichee porte la machine
+  d'origine, de sorte qu'une authentification peut etre suivie de bout en bout :
+  le client qui emet, le serveur qui recoit, le DC qui valide.
+
+  Deux transports sont possibles :
+    WinRM  interrogation en parallele via Invoke-Command (port 5985)
+    RPC    interrogation sequentielle via Get-WinEvent -ComputerName (port 135)
+
+  Les evenements sont dedupliques par RecordId, ce qui permet de recouvrir les
+  fenetres de collecte sans risque de doublon. Les horodatages sont normalises
+  en heure locale du poste de supervision.
+
+.PARAMETER ConfigPath
+  Fichier JSON de configuration. Par defaut watch-config.json a cote du script.
+
+.PARAMETER TestOnly
+  Teste la connectivite et les droits de lecture sur chaque machine, puis sort.
+
+.PARAMETER Backfill
+  Nombre de minutes d'historique a afficher au demarrage. Surcharge la valeur
+  du fichier de configuration.
+
+.PARAMETER CsvPath
+  Si renseigne, chaque evenement est aussi ecrit dans ce fichier CSV.
+
+.PARAMETER User
+  N'affiche que les evenements concernant ce compte (correspondance partielle).
+
+.PARAMETER Protocol
+  Filtre sur le protocole : NTLM, Kerberos ou Autre.
+
+.PARAMETER Credential
+  Compte a utiliser pour interroger les machines distantes. Par defaut, les
+  identifiants de la session courante.
+
+.EXAMPLE
+  .\watch-events-enhanced.ps1
+  Surveillance continue avec la configuration par defaut.
+
+.EXAMPLE
+  .\watch-events-enhanced.ps1 -TestOnly
+  Verifie que les trois machines repondent et que les journaux sont lisibles.
+
+.EXAMPLE
+  .\watch-events-enhanced.ps1 -User userweb -Backfill 30 -CsvPath C:\temp\auth.csv
+  Reprend 30 minutes d'historique pour un compte precis et archive en CSV.
+
+.NOTES
+  PRIVILEGES REQUIS : ce script est en LECTURE SEULE. Il ne modifie rien, ni
+  sur le poste de supervision ni sur les machines surveillees. Il n'a donc pas
+  besoin de droits d'administrateur.
+
+  Il faut simplement, sur chaque machine surveillee :
+
+    transport WinRM  le compte doit etre membre des groupes locaux
+                     "Lecteurs des journaux d'evenements" ET
+                     "Utilisateurs de gestion a distance"
+                     (ou, a defaut, etre administrateur local)
+
+    transport RPC    le compte doit etre membre du groupe local
+                     "Lecteurs des journaux d'evenements" uniquement
+
+  La mise en place de ces droits se fait une seule fois, par un administrateur :
+    .\prepare-monitoring.ps1 -GrantAccessTo DOMAINE\compte-audit
+
+  -TestOnly verifie l'acces machine par machine et affiche la cause de chaque
+  echec.
+#&gt;
+[CmdletBinding()]
+param(
+    [string]$ConfigPath,
+    [switch]$TestOnly,
+    [int]$Backfill = -1,
+    [string]$CsvPath,
+    [string]$User,
+    [ValidateSet('NTLM', 'Kerberos', 'Autre')]
+    [string]$Protocol,
+    [System.Management.Automation.PSCredential]$Credential
+)
+
+$ErrorActionPreference = 'Stop'
+
+# =====================================================================
+# 1. Configuration
+# =====================================================================
+
+if (-not $ConfigPath) {
+    $ConfigPath = Join-Path $PSScriptRoot 'watch-config.json'
+}
+if (-not (Test-Path $ConfigPath)) {
+    throw "Fichier de configuration introuvable : $ConfigPath"
+}
+
+try {
+    $cfg = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} catch {
+    throw "Le fichier de configuration n'est pas un JSON valide : $($_.Exception.Message)"
+}
+
+if (-not $cfg.machines -or $cfg.machines.Count -eq 0) {
+    throw "Aucune machine declaree dans $ConfigPath"
+}
+$empty = @($cfg.machines | Where-Object { -not $_.name -or -not ([string]$_.name).Trim() })
+if ($empty.Count) {
+    throw ("$($empty.Count) machine(s) sans nom dans $ConfigPath. " +
+           "Renseignez le champ 'name' (FQDN de preference), ou supprimez l'entree.")
+}
+
+$interval       = if ($cfg.intervalSeconds) { [int]$cfg.intervalSeconds } else { 5 }
+$backfillMin    = if ($Backfill -ge 0) { $Backfill }
+                  elseif ($cfg.backfillMinutes) { [int]$cfg.backfillMinutes }
+                  else { 5 }
+$defaultTranspt = if ($cfg.transport) { [string]$cfg.transport } else { 'WinRM' }
+
+$flt                  = if ($cfg.filters) { $cfg.filters } else { [pscustomobject]@{} }
+$ignoreMachineAccts   = if ($null -ne $flt.ignoreMachineAccounts) { [bool]$flt.ignoreMachineAccounts } else { $true }
+$ignoreAccounts       = @(if ($flt.ignoreAccounts) { $flt.ignoreAccounts })
+$ignoreLogonTypes     = @(if ($flt.ignoreLogonTypes) { $flt.ignoreLogonTypes | ForEach-Object { [string]$_ } })
+$ignoreSourceIps      = @(if ($flt.ignoreSourceIps) { $flt.ignoreSourceIps })
+$onlyUsers            = @(if ($flt.onlyUsers) { $flt.onlyUsers })
+$onlyProtocols        = @(if ($flt.onlyProtocols) { $flt.onlyProtocols })
+
+if ($User)     { $onlyUsers = @($User) }
+if ($Protocol) { $onlyProtocols = @($Protocol) }
+
+# =====================================================================
+# 2. Collecteur
+#    Execute sur la machine distante (WinRM) ou localement en ciblant la
+#    machine distante (RPC). Il renvoie des objets legers deja normalises
+#    plutot que des EventRecord complets, ce qui limite fortement le volume
+#    transfere sur le reseau.
+# =====================================================================
+
+$Collector = {
+    param(
+        [string]$Role,
+        [int]$LookbackSeconds,
+        [string]$TargetComputer   # vide = machine locale
+    )
+
+    # Journaux et identifiants a interroger selon le role de la machine.
+    $plan = switch ($Role) {
+        'dc' {
+            @(
+                @{ Log = 'Security'; Ids = @(4624, 4625, 4768, 4769, 4771, 4776); Msg = $false }
+                @{ Log = 'Microsoft-Windows-Security-Netlogon/Operational'; Ids = @(); Msg = $true }
+                @{ Log = 'Microsoft-Windows-NTLM/Operational'; Ids = @(); Msg = $true }
+            )
+        }
+        'client' {
+            @(
+                @{ Log = 'Microsoft-Windows-NTLM/Operational'; Ids = @(); Msg = $true }
+                @{ Log = 'Security'; Ids = @(4648, 4624, 4625); Msg = $false }
+            )
+        }
+        'auto' {
+            # Union de tous les journaux : les journaux absents sur la machine
+            # sont simplement ignores (ErrorAction SilentlyContinue).
+            @(
+                @{ Log = 'Security'; Ids = @(4624, 4625, 4648, 4672, 4768, 4769, 4771, 4776); Msg = $false }
+                @{ Log = 'Microsoft-Windows-Security-Netlogon/Operational'; Ids = @(); Msg = $true }
+                @{ Log = 'Microsoft-Windows-NTLM/Operational'; Ids = @(); Msg = $true }
+            )
+        }
+        default {
+            @(
+                @{ Log = 'Security'; Ids = @(4624, 4625, 4648, 4672); Msg = $false }
+                @{ Log = 'Microsoft-Windows-NTLM/Operational'; Ids = @(); Msg = $true }
+            )
+        }
+    }
+
+    # StartTime est calcule SUR la machine interrogee : cela evite tout probleme
+    # de decalage d'horloge ou de fuseau entre le superviseur et les cibles.
+    $start = (Get-Date).AddSeconds(-$LookbackSeconds)
+    $out = New-Object System.Collections.ArrayList
+
+    foreach ($p in $plan) {
+        $hash = @{ LogName = $p.Log; StartTime = $start }
+        if ($p.Ids.Count -gt 0) { $hash['Id'] = $p.Ids }
+
+        $params = @{ FilterHashtable = $hash; ErrorAction = 'SilentlyContinue'; MaxEvents = 300 }
+        if ($TargetComputer) { $params['ComputerName'] = $TargetComputer }
+
+        $events = @(Get-WinEvent @params)
+
+        foreach ($e in $events) {
+            # EventData -&gt; table de hachage nom/valeur
+            $data = @{}
+            try {
+                $x = [xml]$e.ToXml()
+                foreach ($n in $x.Event.EventData.Data) {
+                    if ($n.Name) { $data[$n.Name] = [string]$n.'#text' }
+                }
+            } catch { }
+
+            # Les journaux operationnels NTLM et Netlogon portent l'information
+            # utile dans le texte du message, pas dans EventData.
+            $msg = $null
+            if ($p.Msg) {
+                try { $msg = ($e.Message -replace '\s+', ' ') } catch { }
+            }
+
+            [void]$out.Add([pscustomobject]@{
+                RecordId = $e.RecordId
+                TimeUtc  = $e.TimeCreated.ToUniversalTime()
+                Id       = $e.Id
+                Log      = $p.Log
+                Data     = $data
+                Message  = $msg
+            })
+        }
+    }
+
+    $out
+}
+
+# =====================================================================
+# 3. Normalisation : transformer un evenement brut en ligne affichable
+# =====================================================================
+
+function Get-NormalizedRecord {
+    param($Raw, [string]$Machine, [string]$Role)
+
+    $d   = $Raw.Data
+    $m   = $Raw.Message
+    $id  = [int]$Raw.Id
+
+    function Field([string]$k) { if ($d.ContainsKey($k) -and $d[$k]) { $d[$k] } else { '' } }
+    function FromMsg([string]$pattern) {
+        if ($m -and $m -match $pattern) { $Matches[1] } else { '' }
+    }
+
+    $proto  = ''
+    $kind   = 'Autre'      # NTLM | Kerberos | Autre
+    $ok     = $true
+    $user   = ''
+    $dom    = ''
+    $ip     = ''
+    $detail = ''
+
+    switch ($id) {
+
+        # ---------- Journal Securite ----------
+        4624 {
+            $user = Field 'TargetUserName'; $dom = Field 'TargetDomainName'
+            $ip   = Field 'IpAddress'
+            $pkg  = Field 'AuthenticationPackageName'
+            $lm   = Field 'LmPackageName'
+            $lp   = (Field 'LogonProcessName').Trim()
+            $type = Field 'LogonType'
+
+            $proto = if ($lm -and $lm -ne '-') { "$pkg / $lm" } else { $pkg }
+            $kind  = if ($pkg -match 'NTLM' -or $lp -eq 'NtLmSsp') { 'NTLM' }
+                     elseif ($pkg -match 'Kerberos') { 'Kerberos' }
+                     else { 'Autre' }
+            $detail = "ouverture type=$type proc=$lp logonId=$(Field 'TargetLogonId')"
+            if (Field 'KeyLength') { $detail += " cle=$(Field 'KeyLength')" }
+            if (Field 'WorkstationName') { $detail += " poste=$(Field 'WorkstationName')" }
+        }
+        4625 {
+            $user = Field 'TargetUserName'; $dom = Field 'TargetDomainName'
+            $ip   = Field 'IpAddress'
+            $pkg  = Field 'AuthenticationPackageName'
+            $proto = $pkg; $ok = $false
+            $kind = if ($pkg -match 'NTLM') { 'NTLM' } elseif ($pkg -match 'Kerberos') { 'Kerberos' } else { 'Autre' }
+            $detail = "ECHEC type=$(Field 'LogonType') status=$(Field 'Status') sub=$(Field 'SubStatus')"
+        }
+        4648 {
+            $user = Field 'TargetUserName'; $dom = Field 'TargetDomainName'
+            $ip   = Field 'IpAddress'
+            $proto = 'Identifiants explicites'
+            $detail = "vers $(Field 'TargetServerName') par $(Field 'SubjectUserName')"
+        }
+        4672 {
+            $user = Field 'SubjectUserName'; $dom = Field 'SubjectDomainName'
+            $proto = 'Privileges speciaux'
+            $detail = "logonId=$(Field 'SubjectLogonId')"
+        }
+        4768 {
+            $user = Field 'TargetUserName'; $dom = Field 'TargetDomainName'
+            $ip   = Field 'IpAddress'
+            $proto = 'Kerberos TGT'; $kind = 'Kerberos'
+            $ok = ((Field 'Status') -in @('0x0', '0x00000000', ''))
+            $detail = "AS-REQ status=$(Field 'Status') chiffrement=$(Field 'TicketEncryptionType')"
+        }
+        4769 {
+            $user = Field 'TargetUserName'; $dom = Field 'TargetDomainName'
+            $ip   = Field 'IpAddress'
+            $proto = 'Kerberos TGS'; $kind = 'Kerberos'
+            $ok = ((Field 'Status') -in @('0x0', '0x00000000', ''))
+            $detail = "service=$(Field 'ServiceName') status=$(Field 'Status')"
+        }
+        4771 {
+            $user = Field 'TargetUserName'
+            $ip   = Field 'IpAddress'
+            $proto = 'Kerberos pre-auth'; $kind = 'Kerberos'; $ok = $false
+            $detail = "ECHEC code=$(Field 'Status')"
+        }
+        4776 {
+            $user = Field 'TargetUserName'
+            $proto = 'NTLM validation DC'; $kind = 'NTLM'
+            $err = Field 'Status'
+            $ok = ($err -in @('0x0', '0x00000000', ''))
+            $detail = "poste=$(Field 'Workstation') erreur=$err pkg=$(Field 'PackageName')"
+        }
+
+        # ---------- Journaux operationnels : NTLM et Security-Netlogon ----------
+        # Server 2025 / Windows 11 : 4015, 4020-4023 (NTLM), 4030-4033 (Netlogon).
+        # Versions anterieures : 8001-8004 (NTLM).
+        default {
+            # "(NULL)" et "Null" sont les marqueurs d'absence de ces journaux.
+            function Clean([string]$v) {
+                if ($v -in @('(NULL)', 'NULL', 'Null', 'null', '-')) { '' } else { $v }
+            }
+
+            $user = Clean (FromMsg 'Supplied user:\s*(\S+)')
+            if (-not $user) { $user = Clean (FromMsg 'Username:\s*(\S+)') }
+            # Sur un 4015, "Supplied user" est souvent vide alors que l'identite
+            # du processus appelant, elle, est connue : c'est elle qui compte.
+            if (-not $user) { $user = Clean (FromMsg 'User identity of client process:\s*(\S+)') }
+            if (-not $user) { $user = Clean (Field 'UserName') }
+
+            $dom = Clean (FromMsg 'Supplied domain:\s*(\S+)')
+            if (-not $dom) { $dom = Clean (FromMsg 'Domain name of user identity of client process:\s*(\S+)') }
+            if (-not $dom) { $dom = Clean (FromMsg 'Domain:\s*(\S+)') }
+            $ip  = Clean (FromMsg 'Client IP:\s*(\S+)')
+
+            $ver  = FromMsg 'NTLM Version:\s*(\S+)'
+            $st   = FromMsg 'Status:\s*(0x\S+)'
+            $tgt  = Clean (FromMsg 'Target server:\s*(\S+)')
+            # Les chemins de processus contiennent des espaces : on borne la
+            # capture sur le libelle suivant plutot que sur le premier espace.
+            $proc = FromMsg 'Name of client process:\s*(.+?)\s+LUID of client process:'
+            if (-not $proc) { $proc = FromMsg 'Process Name:\s*(.+?)\s+Process PID:' }
+            if ($proc) { $proc = ($proc -split '\\')[-1] }
+
+            $kind = 'NTLM'
+            switch ($id) {
+                4015 { $proto = 'NTLM sortant BLOQUE'; $ok = $false }
+                4020 { $proto = 'NTLM sortant' }
+                4021 { $proto = 'NTLM sortant (alerte)'; $ok = $false }
+                4022 { $proto = 'NTLM entrant' }
+                4023 { $proto = 'NTLM entrant ECHEC'; $ok = $false }
+                4030 { $proto = 'NTLM DC inter-domaines' }
+                4031 { $proto = 'NTLM DC inter-dom. ECHEC'; $ok = $false }
+                4032 { $proto = 'NTLM DC validation' }
+                4033 { $proto = 'NTLM DC validation ECHEC'; $ok = $false }
+                8001 { $proto = 'NTLM sortant (legacy)' }
+                8002 { $proto = 'NTLM sortant bloque (legacy)'; $ok = $false }
+                8003 { $proto = 'NTLM entrant (legacy)' }
+                8004 { $proto = 'NTLM domaine (legacy)' }
+                default { $proto = "evt $id"; $kind = 'Autre' }
+            }
+            if ($st -and $st -notmatch '^0x0+$') { $ok = $false }
+
+            $bits = @()
+            if ($ver)  { $bits += $ver }
+            if ($tgt)  { $bits += "cible=$tgt" }
+            if ($proc) { $bits += "proc=$proc" }
+            if ($st)   { $bits += "status=$st" }
+            if (-not $bits -and $d.Count) {
+                $bits += ($d.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
+            }
+            $detail = $bits -join ' '
+        }
+    }
+
+    [pscustomobject]@{
+        Time     = $Raw.TimeUtc.ToLocalTime()
+        Machine  = $Machine
+        Role     = $Role
+        Id       = $id
+        Protocol = $proto
+        Kind     = $kind
+        Success  = $ok
+        User     = $user
+        Domain   = $dom
+        Ip       = $ip
+        Detail   = $detail
+    }
+}
+
+# =====================================================================
+# 4. Filtrage
+# =====================================================================
+
+function Test-Keep {
+    param($R)
+
+    $u = $R.User
+    if (-not $u -or $u -eq '-') { return $false }
+    if ($ignoreMachineAccts -and $u -match '\$$') { return $false }
+    foreach ($a in $ignoreAccounts) { if ($u -eq $a) { return $false } }
+
+    if ($ignoreLogonTypes.Count -and $R.Detail -match 'type=(\d+)') {
+        if ($Matches[1] -in $ignoreLogonTypes) { return $false }
+    }
+    # Adresses a masquer : typiquement celle du poste de supervision, dont les
+    # connexions d'administration ne sont pas le sujet de l'observation.
+    if ($ignoreSourceIps.Count -and $R.Ip) {
+        foreach ($x in $ignoreSourceIps) { if ($R.Ip -eq $x) { return $false } }
+    }
+    if ($onlyUsers.Count) {
+        $hit = $false
+        foreach ($p in $onlyUsers) { if ($u -like "*$p*") { $hit = $true; break } }
+        if (-not $hit) { return $false }
+    }
+    if ($onlyProtocols.Count -and $R.Kind -notin $onlyProtocols) { return $false }
+
+    return $true
+}
+
+# =====================================================================
+# 5. Affichage
+# =====================================================================
+
+$roleTag = @{ dc = 'DC'; server = 'SRV'; client = 'CLI'; auto = 'AUT' }
+
+function Get-LineColor {
+    param($R)
+    if (-not $R.Success) { return 'Red' }
+    switch ($R.Kind) {
+        'NTLM'     { 'Yellow' }
+        'Kerberos' { 'Cyan' }
+        default    { 'Gray' }
+    }
+}
+
+function Write-Record {
+    param($R)
+    $line = '{0,-12} {1,-16} {2,-4} {3,-5} {4,-26} {5}' -f `
+        $R.Time.ToString('HH:mm:ss.fff'),
+        $R.Machine,
+        $roleTag[$R.Role],
+        $R.Id,
+        $R.Protocol,
+        ("$($R.Domain)\$($R.User)".TrimStart('\') + $(if ($R.Ip) { " [$($R.Ip)]" } else { '' }) + '  ' + $R.Detail)
+    Write-Host $line -ForegroundColor (Get-LineColor $R)
+}
+
+function Write-Header {
+    Write-Host ''
+    Write-Host ('{0,-12} {1,-16} {2,-4} {3,-5} {4,-26} {5}' -f `
+        'HEURE', 'MACHINE', 'ROLE', 'ID', 'PROTOCOLE', 'COMPTE / DETAIL') -ForegroundColor White
+    Write-Host ('-' * 150) -ForegroundColor DarkGray
+}
+
+# =====================================================================
+# 6. Connexion aux machines
+# =====================================================================
+
+$machines = @(foreach ($m in $cfg.machines) {
+    [pscustomobject]@{
+        Name      = [string]$m.name
+        Short     = ([string]$m.name).Split('.')[0].ToUpper()
+        Role      = if ($m.role) { [string]$m.role } else { 'server' }
+        Label     = if ($m.label) { [string]$m.label } else { '' }
+        Transport = if ($m.transport) { [string]$m.transport } else { $defaultTranspt }
+        Online    = $false
+        LastError = ''
+        Session   = $null
+    }
+})
+
+function Get-MachineSession {
+    &lt;#  Session WinRM PERSISTANTE, creee une fois et reutilisee a chaque tour.
+
+        Sans cela, chaque interrogation ouvrirait une nouvelle connexion, donc
+        une nouvelle ouverture de session reseau sur la cible : un evenement
+        4624 toutes les quelques secondes sur chaque machine surveillee. L'outil
+        polluerait alors exactement ce qu'il est cense observer.               #&gt;
+    param($M)
+
+    if ($M.Session -and $M.Session.State -eq 'Opened') { return $M.Session }
+    if ($M.Session) {
+        try { Remove-PSSession $M.Session -ErrorAction SilentlyContinue } catch { }
+        $M.Session = $null
+    }
+    $p = @{ ComputerName = $M.Name; ErrorAction = 'Stop' }
+    if ($Credential) { $p['Credential'] = $Credential }
+    $M.Session = New-PSSession @p
+    return $M.Session
+}
+
+function Close-MachineSessions {
+    foreach ($m in $machines) {
+        if ($m.Session) {
+            try { Remove-PSSession $m.Session -ErrorAction SilentlyContinue } catch { }
+            $m.Session = $null
+        }
+    }
+}
+
+function Invoke-Collect {
+    &lt;#  Execute le collecteur contre une machine, quel que soit le transport.
+
+        Renvoie TOUJOURS un tableau en cas de succes, eventuellement vide, et
+        $null uniquement en cas d'echec de connexion. Cette distinction est
+        essentielle : une machine sans evenement n'est pas une machine
+        injoignable.                                                           #&gt;
+    param($M, [int]$Lookback)
+
+    $isLocal = ($M.Short -eq $env:COMPUTERNAME.ToUpper())
+
+    try {
+        $out = if ($isLocal) {
+            &amp; $Collector $M.Role $Lookback ''
+        } elseif ($M.Transport -eq 'RPC') {
+            &amp; $Collector $M.Role $Lookback $M.Name
+        } else {
+            $s = Get-MachineSession -M $M
+            Invoke-Command -Session $s -ScriptBlock $Collector `
+                           -ArgumentList @($M.Role, $Lookback, '') -ErrorAction Stop
+        }
+
+        $M.LastError = ''
+        # @($null) produirait un tableau d'un element nul : on teste avant.
+        if ($null -eq $out) { return , @() }
+        return , @($out)
+    } catch {
+        $M.LastError = $_.Exception.Message
+        # La session est peut-etre morte : on la jette pour forcer une
+        # reconnexion propre au prochain essai.
+        if ($M.Session) {
+            try { Remove-PSSession $M.Session -ErrorAction SilentlyContinue } catch { }
+            $M.Session = $null
+        }
+        return $null
+    }
+}
+
+function Info2($t) { Write-Host "  $t" -ForegroundColor DarkGray }
+
+function Test-Machines {
+    Write-Host ''
+    Write-Host 'Verification des machines' -ForegroundColor Cyan
+    Write-Host ('-' * 78) -ForegroundColor DarkGray
+
+    foreach ($m in $machines) {
+        $tag = if ($m.Label) { " ($($m.Label))" } else { '' }
+        Write-Host ("  {0,-26} {1,-7} {2,-6} " -f $m.Name, $m.Role, $m.Transport) -NoNewline
+
+        $res = Invoke-Collect -M $m -Lookback 120
+        if ($null -eq $res) {
+            $m.Online = $false
+            Write-Host 'INJOIGNABLE' -ForegroundColor Red
+            Write-Host ("      -&gt; " + $m.LastError) -ForegroundColor DarkGray
+        } else {
+            $m.Online = $true
+            Write-Host ("OK  ({0} evenement(s) sur 2 min)$tag" -f @($res).Count) -ForegroundColor Green
+        }
+    }
+
+    $up = @($machines | Where-Object Online).Count
+    Write-Host ('-' * 78) -ForegroundColor DarkGray
+    Write-Host ("  {0}/{1} machine(s) joignable(s)" -f $up, $machines.Count) `
+        -ForegroundColor $(if ($up -eq $machines.Count) { 'Green' } elseif ($up) { 'Yellow' } else { 'Red' })
+    $keep = @($machines | Where-Object { $_.Session }).Count
+    if ($keep) { Info2 "$keep session(s) WinRM persistante(s) ouverte(s), reutilisees a chaque tour" }
+
+    if ($up -lt $machines.Count) {
+        Write-Host ''
+        Write-Host '  Pistes en cas d''echec :' -ForegroundColor Yellow
+        Write-Host '    - WinRM non active sur la cible      : Enable-PSRemoting -Force'
+        Write-Host '    - droits insuffisants                : ajouter le compte au groupe local'
+        Write-Host '                                           "Lecteurs des journaux d''evenements"'
+        Write-Host '    - pare-feu                           : autoriser WinRM (5985) ou, en RPC,'
+        Write-Host '                                           "Gestion a distance du journal des evenements"'
+        Write-Host '    - machine hors domaine               : renseigner -Credential'
+    }
+    Write-Host ''
+}
+
+# =====================================================================
+# 7. Boucle principale
+# =====================================================================
+
+Write-Host ''
+Write-Host '  Surveillance centralisee NTLM / Kerberos' -ForegroundColor Cyan
+Write-Host "  configuration : $ConfigPath" -ForegroundColor DarkGray
+if ($cfg.domain) { Write-Host "  domaine       : $($cfg.domain)" -ForegroundColor DarkGray }
+Write-Host ("  machines      : {0}   intervalle : {1}s   historique : {2} min" -f `
+    $machines.Count, $interval, $backfillMin) -ForegroundColor DarkGray
+if ($onlyUsers.Count)     { Write-Host "  filtre compte : $($onlyUsers -join ', ')" -ForegroundColor DarkGray }
+if ($onlyProtocols.Count) { Write-Host "  filtre proto  : $($onlyProtocols -join ', ')" -ForegroundColor DarkGray }
+if ($CsvPath)             { Write-Host "  export CSV    : $CsvPath" -ForegroundColor DarkGray }
+
+Test-Machines
+
+if ($TestOnly) { Close-MachineSessions; return }
+
+$online = @($machines | Where-Object Online)
+if ($online.Count -eq 0) { throw 'Aucune machine joignable, arret.' }
+
+# Deduplication : cle "machine|journal|recordid". Bornee pour ne pas croitre
+# indefiniment sur une session longue.
+$seen = New-Object 'System.Collections.Generic.HashSet[string]'
+$seenOrder = New-Object System.Collections.Queue
+$seenMax = 20000
+
+function Register-Seen {
+    param([string]$Key)
+    if ($seen.Contains($Key)) { return $false }
+    [void]$seen.Add($Key)
+    $seenOrder.Enqueue($Key)
+    while ($seenOrder.Count -gt $seenMax) { [void]$seen.Remove($seenOrder.Dequeue()) }
+    return $true
+}
+
+$stats = @{ Total = 0; NTLM = 0; Kerberos = 0; Echecs = 0 }
+$firstPass = $true
+$tick = 0
+# Recouvrement : on reinterroge plus large que l'intervalle, la deduplication
+# se charge d'eliminer les doublons. Evite de manquer un evenement ecrit avec
+# un leger decalage.
+$lookback = [Math]::Max($interval * 2 + 10, 30)
+
+Write-Header
+Write-Host '  Ctrl+C pour arreter' -ForegroundColor DarkGray
+
+try {
+    while ($true) {
+        $batch = New-Object System.Collections.ArrayList
+        $lb = if ($firstPass) { [Math]::Max($backfillMin * 60, $lookback) } else { $lookback }
+
+        foreach ($m in $online) {
+            $raws = Invoke-Collect -M $m -Lookback $lb
+            if ($null -eq $raws) {
+                if ($m.Online) {
+                    $m.Online = $false
+                    Write-Host ("  [!] {0} ne repond plus : {1}" -f $m.Short, $m.LastError) -ForegroundColor Red
+                }
+                continue
+            }
+            foreach ($raw in @($raws)) {
+                $key = '{0}|{1}|{2}' -f $m.Short, $raw.Log, $raw.RecordId
+                if (-not (Register-Seen $key)) { continue }
+
+                $rec = Get-NormalizedRecord -Raw $raw -Machine $m.Short -Role $m.Role
+                if (Test-Keep $rec) { [void]$batch.Add($rec) }
+            }
+        }
+
+        # Tri chronologique global : c'est tout l'interet de la vue centralisee,
+        # voir s'enchainer client -&gt; serveur -&gt; DC dans le bon ordre.
+        foreach ($r in ($batch | Sort-Object Time)) {
+            Write-Record $r
+            $stats.Total++
+            if ($r.Kind -eq 'NTLM')     { $stats.NTLM++ }
+            if ($r.Kind -eq 'Kerberos') { $stats.Kerberos++ }
+            if (-not $r.Success)        { $stats.Echecs++ }
+
+            if ($CsvPath) {
+                try {
+                    $r | Select-Object Time, Machine, Role, Id, Protocol, Kind, Success, User, Domain, Ip, Detail |
+                        Export-Csv -Path $CsvPath -Append -NoTypeInformation -Encoding UTF8
+                } catch {
+                    Write-Host "  [!] ecriture CSV impossible : $($_.Exception.Message)" -ForegroundColor Red
+                    $CsvPath = $null
+                }
+            }
+        }
+
+        if ($firstPass) {
+            $firstPass = $false
+            Write-Host ('  --- fin de l''historique, surveillance en direct ---') -ForegroundColor DarkGray
+        }
+
+        # Reprise des machines tombees, testee une iteration sur six pour ne pas
+        # payer un delai d'expiration a chaque tour.
+        $tick++
+        if ($tick % 6 -eq 0) {
+            $down = @($machines | Where-Object { -not $_.Online })
+            foreach ($m in $down) {
+                if ($null -ne (Invoke-Collect -M $m -Lookback 60)) {
+                    $m.Online = $true
+                    Write-Host ("  [+] {0} de nouveau joignable" -f $m.Short) -ForegroundColor Green
+                }
+            }
+            if ($down.Count) { $online = @($machines | Where-Object Online) }
+        }
+
+        Start-Sleep -Seconds $interval
+    }
+}
+finally {
+    Close-MachineSessions
+    Write-Host ''
+    Write-Host ('-' * 78) -ForegroundColor DarkGray
+    Write-Host ("  {0} evenement(s) affiche(s)  -  NTLM {1}  |  Kerberos {2}  |  echecs {3}" -f `
+        $stats.Total, $stats.NTLM, $stats.Kerberos, $stats.Echecs) -ForegroundColor Cyan
+    if ($CsvPath -and (Test-Path $CsvPath)) {
+        Write-Host "  CSV : $CsvPath" -ForegroundColor DarkGray
+    }
+    Write-Host ''
+}</code></pre>
+</details>
+
+<footer>
+  <p>Documentation de l'outil de surveillance centralisée NTLM / Kerberos. Les valeurs
+  d'exemple — noms de machines, domaine, adresses — sont à adapter à votre
+  environnement.</p>
+</footer>
+
+</div>

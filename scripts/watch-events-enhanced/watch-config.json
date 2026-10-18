@@ -1,0 +1,82 @@
+{
+  "_lisezmoi": [
+    "Configuration partagee par prepare-monitoring.ps1 et watch-events-enhanced.ps1.",
+    "Les cles commencant par _ sont ignorees : ce sont des commentaires.",
+    "",
+    "=== transport ===",
+    "  'WinRM'  port 5985, collecte en parallele. Le compte doit etre administrateur",
+    "           local de la cible (ou membre de 'Remote Management Users').",
+    "           Activation : Enable-PSRemoting -Force",
+    "  'RPC'    port 135 + ports dynamiques, collecte sequentielle. Le compte peut",
+    "           n'etre que membre de 'Event Log Readers'. Moindre privilege.",
+    "           Activation : Enable-NetFirewallRule -Name RemoteEventLogSvc*",
+    "  Valeur globale ci-dessous, surchargeable machine par machine.",
+    "",
+    "=== role : decide des journaux interroges ===",
+    "  'dc'      Securite 4624/4625/4768/4769/4771/4776",
+    "            + Microsoft-Windows-Security-Netlogon/Operational (4030-4033)",
+    "            + Microsoft-Windows-NTLM/Operational",
+    "  'server'  Securite 4624/4625/4648/4672",
+    "            + Microsoft-Windows-NTLM/Operational (4022/4023, 8003)",
+    "  'client'  Microsoft-Windows-NTLM/Operational (4015/4020/4021, 8001)",
+    "            + Securite 4624/4625/4648",
+    "  'auto'    tous les journaux ci-dessus ; ceux qui n'existent pas sur la",
+    "            machine sont simplement ignores. Pratique si vous ne voulez pas",
+    "            classer vos machines, au prix de quelques requetes inutiles.",
+    "",
+    "=== filtres ===",
+    "  ignoreMachineAccounts  ignore les comptes se terminant par $ (comptes machine)",
+    "  ignoreAccounts         comptes a masquer, correspondance exacte",
+    "  ignoreLogonTypes       types d'ouverture a masquer. 5 = service, tres bruyant.",
+    "                         2 = interactif, 3 = reseau, 10 = RDP",
+    "  ignoreSourceIps        adresses source a masquer. Utile pour l'adresse du",
+    "                         poste de supervision lui-meme : ses connexions",
+    "                         d'administration ne sont pas le sujet. Le script",
+    "                         utilise des sessions WinRM persistantes, donc une",
+    "                         seule ouverture de session par machine au demarrage",
+    "                         et non une a chaque tour, mais elle apparait quand",
+    "                         meme dans l'historique initial.",
+    "  onlyUsers              si non vide, ne garde que ces comptes (partiel)",
+    "  onlyProtocols          si non vide : 'NTLM', 'Kerberos' ou 'Autre'",
+    "  Les options -User et -Protocol de la ligne de commande priment sur ces deux",
+    "  dernieres listes.",
+    "",
+    "=== exemples de machines ===",
+    "  { \"name\": \"DC02.monlab.local\", \"role\": \"dc\" }",
+    "  { \"name\": \"SRV-FILE01.monlab.local\", \"role\": \"server\", \"transport\": \"RPC\" }",
+    "  { \"name\": \"10.0.0.42\", \"role\": \"auto\", \"label\": \"machine hors DNS\" }",
+    "  Le FQDN est preferable a l'adresse IP : Kerberos en a besoin pour la",
+    "  connexion distante, sinon la collecte retombe elle-meme sur NTLM."
+  ],
+
+  "domain": "",
+
+  "transport": "WinRM",
+  "intervalSeconds": 5,
+  "backfillMinutes": 5,
+
+  "filters": {
+    "ignoreMachineAccounts": true,
+    "ignoreAccounts": [
+      "SYSTEM",
+      "ANONYMOUS LOGON",
+      "LOCAL SERVICE",
+      "NETWORK SERVICE",
+      "DWM-1",
+      "DWM-2",
+      "UMFD-0",
+      "UMFD-1",
+      "UMFD-2"
+    ],
+    "ignoreLogonTypes": [ 5 ],
+    "ignoreSourceIps": [],
+    "onlyUsers": [],
+    "onlyProtocols": []
+  },
+
+  "machines": [
+    { "name": "", "role": "dc",     "label": "Controleur de domaine" },
+    { "name": "", "role": "server", "label": "Serveur web" },
+    { "name": "", "role": "client", "label": "Poste de test" }
+  ]
+}
